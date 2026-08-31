@@ -112,6 +112,7 @@ function WorkforceUnavailable() {
           Please try again shortly. If this continues, contact Blue Collar
           People for help.
         </p>
+        <LogoutButton />
       </section>
     </main>
   );
