@@ -1,7 +1,7 @@
 'use client';
 
-import { useMemo, useState } from 'react';
-import type { ClientWorker } from '@/lib/client-workers';
+import { useMemo, useState, type KeyboardEvent } from 'react';
+import type { ClientWorker, ClientWorkerBooking } from '@/lib/client-workers';
 import { localDateFromKey } from '@/lib/business-date';
 import { Brand } from '@/components/brand';
 import { LogoutButton } from '@/components/logout-button';
@@ -13,7 +13,6 @@ type ClientPortalProps = {
   title?: string;
   initialBusinessDate: string;
   mode: 'authenticated' | 'development-preview' | 'admin-preview';
-  userEmail?: string;
 };
 
 type ClassificationCount = {
@@ -21,11 +20,28 @@ type ClassificationCount = {
   count: number;
 };
 
+type PortalTab = 'schedule' | 'bookings';
+
+type WorkerBookingRow = {
+  worker: ClientWorker;
+  booking: ClientWorkerBooking;
+};
+
+const portalTabs: ReadonlyArray<{ id: PortalTab; label: string }> = [
+  { id: 'schedule', label: 'Weekly schedule' },
+  { id: 'bookings', label: 'Worker bookings' },
+];
+
 const shortWeekday = new Intl.DateTimeFormat('en-AU', { weekday: 'short' });
 const dayNumber = new Intl.DateTimeFormat('en-AU', { day: 'numeric' });
 const calendarDate = new Intl.DateTimeFormat('en-AU', {
   day: 'numeric',
   month: 'short',
+});
+const bookingDate = new Intl.DateTimeFormat('en-AU', {
+  day: 'numeric',
+  month: 'short',
+  year: 'numeric',
 });
 const rangeStart = new Intl.DateTimeFormat('en-AU', {
   day: 'numeric',
@@ -42,12 +58,12 @@ export function ClientPortal({
   workers,
   clientName,
   title: titleOverride,
-  userEmail,
   initialBusinessDate,
   mode,
 }: ClientPortalProps) {
   const currentWeekStart = mondayFor(localDateFromKey(initialBusinessDate));
   const [weekStart, setWeekStart] = useState(currentWeekStart);
+  const [activeTab, setActiveTab] = useState<PortalTab>('schedule');
   const days = useMemo(
     () => Array.from({ length: 7 }, (_, index) => addDays(weekStart, index)),
     [weekStart],
@@ -58,9 +74,21 @@ export function ClientPortal({
   );
   const isCurrentWeek = dateKey(weekStart) === dateKey(currentWeekStart);
   const weekRange = formatWeekRange(days[0], days[6]);
-  const title = titleOverride ?? `${clientName} – BCP Workers`;
+  const title = titleOverride ?? clientName + ' – BCP Workers';
   const isDevelopmentPreview = mode === 'development-preview';
   const isAdminPreview = mode === 'admin-preview';
+
+  const scheduleProps: WeeklyScheduleProps = {
+    workers,
+    days,
+    weekRange,
+    isCurrentWeek,
+    todayKey: initialBusinessDate,
+    classificationCounts,
+    onPreviousWeek: () => setWeekStart((week) => addDays(week, -7)),
+    onNextWeek: () => setWeekStart((week) => addDays(week, 7)),
+    onCurrentWeek: () => setWeekStart(currentWeekStart),
+  };
 
   return (
     <div className="site-shell">
@@ -75,7 +103,6 @@ export function ClientPortal({
           <div className="user-controls">
             <div className="user-context">
               <strong>Client portal</strong>
-              <span>{userEmail}</span>
             </div>
             {isAdminPreview ? (
               <span className="preview-badge preview-badge--admin">
@@ -95,7 +122,10 @@ export function ClientPortal({
           </h1>
           <div
             className="workforce-summary"
-            aria-label={`${workers.length} current workers`}
+            aria-label={
+              String(workers.length) +
+              (workers.length === 1 ? ' current worker' : ' current workers')
+            }
           >
             <span className="summary-count">{workers.length}</span>
             {workers.length === 1 ? 'current worker' : 'current workers'}
@@ -105,22 +135,71 @@ export function ClientPortal({
         {workers.length === 0 ? (
           <EmptyWorkforce />
         ) : (
-          <>
-            <WeeklySchedule
-              workers={workers}
-              days={days}
-              weekRange={weekRange}
-              isCurrentWeek={isCurrentWeek}
-              todayKey={initialBusinessDate}
-              classificationCounts={classificationCounts}
-              onPreviousWeek={() => setWeekStart((week) => addDays(week, -7))}
-              onNextWeek={() => setWeekStart((week) => addDays(week, 7))}
-              onCurrentWeek={() => setWeekStart(currentWeekStart)}
-            />
-            <WorkerBookings workers={workers} days={days} />
-          </>
+          <div className="portal-workforce">
+            <PortalTabs activeTab={activeTab} onSelect={setActiveTab} />
+            {activeTab === 'schedule' ? (
+              <WeeklySchedule {...scheduleProps} />
+            ) : (
+              <WorkerBookings {...scheduleProps} />
+            )}
+          </div>
         )}
       </main>
+    </div>
+  );
+}
+
+function PortalTabs({
+  activeTab,
+  onSelect,
+}: {
+  activeTab: PortalTab;
+  onSelect: (tab: PortalTab) => void;
+}) {
+  function onKeyDown(event: KeyboardEvent<HTMLButtonElement>) {
+    const currentIndex = portalTabs.findIndex((tab) => tab.id === activeTab);
+    let nextIndex = currentIndex;
+
+    if (event.key === 'ArrowRight' || event.key === 'ArrowDown') {
+      nextIndex = (currentIndex + 1) % portalTabs.length;
+    } else if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') {
+      nextIndex = (currentIndex - 1 + portalTabs.length) % portalTabs.length;
+    } else if (event.key === 'Home') {
+      nextIndex = 0;
+    } else if (event.key === 'End') {
+      nextIndex = portalTabs.length - 1;
+    } else {
+      return;
+    }
+
+    event.preventDefault();
+    const nextTab = portalTabs[nextIndex];
+    onSelect(nextTab.id);
+    document.getElementById('portal-tab-' + nextTab.id)?.focus();
+  }
+
+  return (
+    <div className="portal-tabs" role="tablist" aria-label="Portal views">
+      {portalTabs.map((tab) => {
+        const isActive = tab.id === activeTab;
+
+        return (
+          <button
+            aria-controls={'portal-panel-' + tab.id}
+            aria-selected={isActive}
+            className="portal-tab"
+            id={'portal-tab-' + tab.id}
+            key={tab.id}
+            onClick={() => onSelect(tab.id)}
+            onKeyDown={onKeyDown}
+            role="tab"
+            tabIndex={isActive ? 0 : -1}
+            type="button"
+          >
+            {tab.label}
+          </button>
+        );
+      })}
     </div>
   );
 }
@@ -149,39 +228,23 @@ function WeeklySchedule({
   onCurrentWeek,
 }: WeeklyScheduleProps) {
   return (
-    <section className="schedule-section" aria-labelledby="weekly-schedule-title">
-      <div className="section-tab">
-        <h2 id="weekly-schedule-title">Weekly schedule</h2>
-      </div>
+    <section
+      aria-labelledby="portal-tab-schedule"
+      className="schedule-section tab-panel"
+      id="portal-panel-schedule"
+      role="tabpanel"
+    >
       <div className="calendar-card">
         <div className="calendar-toolbar">
           <p className="week-label" aria-live="polite">
             {weekRange}
           </p>
-          <div className="week-controls" aria-label="Calendar week controls">
-            <button
-              className="button button--calendar"
-              type="button"
-              onClick={onPreviousWeek}
-            >
-              <span aria-hidden="true">‹</span> Previous
-            </button>
-            <button
-              className="button button--calendar"
-              type="button"
-              onClick={onCurrentWeek}
-              disabled={isCurrentWeek}
-            >
-              This week
-            </button>
-            <button
-              className="button button--calendar"
-              type="button"
-              onClick={onNextWeek}
-            >
-              Next <span aria-hidden="true">›</span>
-            </button>
-          </div>
+          <WeekControls
+            isCurrentWeek={isCurrentWeek}
+            onCurrentWeek={onCurrentWeek}
+            onNextWeek={onNextWeek}
+            onPreviousWeek={onPreviousWeek}
+          />
         </div>
 
         <ClassificationSummary counts={classificationCounts} />
@@ -189,6 +252,35 @@ function WeeklySchedule({
         <MobileCalendar workers={workers} days={days} todayKey={todayKey} />
       </div>
     </section>
+  );
+}
+
+function WeekControls({
+  isCurrentWeek,
+  onPreviousWeek,
+  onNextWeek,
+  onCurrentWeek,
+}: Pick<
+  WeeklyScheduleProps,
+  'isCurrentWeek' | 'onPreviousWeek' | 'onNextWeek' | 'onCurrentWeek'
+>) {
+  return (
+    <div className="week-controls" aria-label="Calendar week controls">
+      <button className="button button--calendar" type="button" onClick={onPreviousWeek}>
+        <span aria-hidden="true">‹</span> Previous
+      </button>
+      <button
+        className="button button--calendar"
+        type="button"
+        onClick={onCurrentWeek}
+        disabled={isCurrentWeek}
+      >
+        This week
+      </button>
+      <button className="button button--calendar" type="button" onClick={onNextWeek}>
+        Next <span aria-hidden="true">›</span>
+      </button>
+    </div>
   );
 }
 
@@ -229,47 +321,44 @@ function DesktopCalendar({
           </tr>
         </thead>
         <tbody>
-          {workers.map((worker) => (
-            <tr key={workerKey(worker)}>
-              <td>
-                <div className="calendar-worker">
-                  <WorkerAvatar
-                    name={worker.name}
-                    photoUrl={worker.photoUrl}
-                    compact
-                  />
-                  <div className="calendar-worker-copy">
-                    <span className="calendar-worker-name">{worker.name}</span>
-                    <WorkerClassification
-                      classification={worker.classification}
-                      className="calendar-worker-classification"
-                    />
-                    <WorkerContact worker={worker} className="calendar-worker-phone" />
-                  </div>
-                </div>
-              </td>
-              {days.map((day) => {
-                const assigned = worker.assignedDates.includes(dateKey(day));
-                return (
-                  <td
-                    key={dateKey(day)}
-                    data-today={dateKey(day) === todayKey}
-                    aria-label={`${worker.name}: ${assigned ? 'assigned' : 'not assigned'} on ${calendarDate.format(day)}`}
-                  >
-                    {assigned ? (
-                      <span className="assignment-mark" aria-hidden="true">
-                        ✓
-                      </span>
-                    ) : (
-                      <span className="no-assignment" aria-hidden="true">
-                        —
-                      </span>
-                    )}
-                  </td>
-                );
-              })}
-            </tr>
-          ))}
+          {workers.map((worker) => {
+            const booking = bookingForWeek(worker, days);
+
+            return (
+              <tr key={workerKey(worker)}>
+                <td>
+                  <WorkerScheduleIdentity worker={worker} booking={booking} />
+                </td>
+                {days.map((day) => {
+                  const assigned = worker.assignedDates.includes(dateKey(day));
+
+                  return (
+                    <td
+                      key={dateKey(day)}
+                      data-today={dateKey(day) === todayKey}
+                      aria-label={
+                        worker.name +
+                        ': ' +
+                        (assigned ? 'assigned' : 'not assigned') +
+                        ' on ' +
+                        calendarDate.format(day)
+                      }
+                    >
+                      {assigned ? (
+                        <span className="assignment-mark" aria-hidden="true">
+                          ✓
+                        </span>
+                      ) : (
+                        <span className="no-assignment" aria-hidden="true">
+                          —
+                        </span>
+                      )}
+                    </td>
+                  );
+                })}
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>
@@ -283,79 +372,163 @@ function MobileCalendar({
 }: Pick<WeeklyScheduleProps, 'workers' | 'days' | 'todayKey'>) {
   return (
     <div className="mobile-schedule">
-      {workers.map((worker) => (
-        <article className="mobile-schedule-worker" key={workerKey(worker)}>
-          <div className="calendar-worker">
-            <WorkerAvatar name={worker.name} photoUrl={worker.photoUrl} compact />
-            <div className="calendar-worker-copy">
-              <span className="calendar-worker-name">{worker.name}</span>
-              <WorkerClassification
-                classification={worker.classification}
-                className="calendar-worker-classification"
-              />
-              <WorkerContact worker={worker} className="calendar-worker-phone" />
+      {workers.map((worker) => {
+        const booking = bookingForWeek(worker, days);
+
+        return (
+          <article className="mobile-schedule-worker" key={workerKey(worker)}>
+            <WorkerScheduleIdentity worker={worker} booking={booking} />
+            <div className="mobile-days" aria-label={worker.name + "'s weekly assignments"}>
+              {days.map((day) => {
+                const assigned = worker.assignedDates.includes(dateKey(day));
+                const isToday = dateKey(day) === todayKey;
+
+                return (
+                  <div
+                    className={mobileDayClassName(assigned, isToday)}
+                    key={dateKey(day)}
+                    aria-label={
+                      shortWeekday.format(day) +
+                      ' ' +
+                      calendarDate.format(day) +
+                      ': ' +
+                      (assigned ? 'assigned' : 'not assigned')
+                    }
+                  >
+                    <span className="mobile-day-label">
+                      {shortWeekday.format(day).slice(0, 2)}
+                    </span>
+                    <span className="mobile-day-number">{dayNumber.format(day)}</span>
+                    <span className="mobile-day-check" aria-hidden="true">
+                      {assigned ? '✓' : '·'}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
-          </div>
-          <div className="mobile-days" aria-label={`${worker.name}'s weekly assignments`}>
-            {days.map((day) => {
-              const assigned = worker.assignedDates.includes(dateKey(day));
-              return (
-                <div
-                  className={`mobile-day${assigned ? ' mobile-day--assigned' : ''}${
-                    dateKey(day) === todayKey ? ' mobile-day--today' : ''
-                  }`}
-                  key={dateKey(day)}
-                  aria-label={`${shortWeekday.format(day)} ${calendarDate.format(day)}: ${assigned ? 'assigned' : 'not assigned'}`}
-                >
-                  <span className="mobile-day-label">
-                    {shortWeekday.format(day).slice(0, 2)}
-                  </span>
-                  <span className="mobile-day-number">{dayNumber.format(day)}</span>
-                  <span className="mobile-day-check" aria-hidden="true">
-                    {assigned ? '✓' : '·'}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-        </article>
-      ))}
+          </article>
+        );
+      })}
     </div>
   );
 }
 
-function WorkerBookings({ workers, days }: Pick<WeeklyScheduleProps, 'workers' | 'days'>) {
-  const weekDates = new Set(days.map(dateKey));
+function WorkerScheduleIdentity({
+  worker,
+  booking,
+}: {
+  worker: ClientWorker;
+  booking: ClientWorkerBooking | null;
+}) {
+  return (
+    <div className="calendar-worker">
+      <WorkerAvatar name={worker.name} photoUrl={worker.photoUrl} compact />
+      <div className="calendar-worker-copy">
+        <span className="calendar-worker-name">{worker.name}</span>
+        <WorkerClassification
+          classification={booking?.classification ?? worker.classification}
+          className="calendar-worker-classification"
+        />
+        <WorkerBookingSummary booking={booking} />
+        <WorkerContact worker={worker} className="calendar-worker-phone" />
+      </div>
+    </div>
+  );
+}
+
+function WorkerBookingSummary({ booking }: { booking: ClientWorkerBooking | null }) {
+  if (!booking) return null;
+
+  const parts = [
+    booking.startDate ? 'Start ' + formatScheduleDate(booking.startDate) : null,
+    booking.ongoing === true
+      ? 'Ongoing'
+      : booking.endDate
+        ? 'End ' + formatScheduleDate(booking.endDate)
+        : null,
+    booking.endDateConfirmed === true
+      ? 'End confirmed'
+      : booking.endDateConfirmed === false
+        ? 'End pending'
+        : null,
+  ].filter((value): value is string => Boolean(value));
+
+  if (parts.length === 0) return null;
+
+  return <span className="calendar-worker-booking">{parts.join(' · ')}</span>;
+}
+
+function WorkerBookings({
+  workers,
+  days,
+  weekRange,
+  isCurrentWeek,
+  onPreviousWeek,
+  onNextWeek,
+  onCurrentWeek,
+}: WeeklyScheduleProps) {
+  const rows = workerBookingsForWeek(workers, days);
 
   return (
-    <section className="worker-bookings" aria-labelledby="worker-bookings-title">
-      <div className="section-heading">
-        <h2 id="worker-bookings-title">Worker bookings</h2>
+    <section
+      aria-labelledby="portal-tab-bookings"
+      className="worker-bookings tab-panel"
+      id="portal-panel-bookings"
+      role="tabpanel"
+    >
+      <div className="booking-toolbar">
+        <p className="week-label" aria-live="polite">
+          {weekRange}
+        </p>
+        <WeekControls
+          isCurrentWeek={isCurrentWeek}
+          onCurrentWeek={onCurrentWeek}
+          onNextWeek={onNextWeek}
+          onPreviousWeek={onPreviousWeek}
+        />
       </div>
-      <div className="worker-grid">
-        {workers.map((worker) => {
-          const bookingsThisWeek = worker.assignedDates.filter((date) => weekDates.has(date));
 
-          return (
-            <article className="worker-card" key={workerKey(worker)}>
-              <WorkerAvatar name={worker.name} photoUrl={worker.photoUrl} />
-              <div className="worker-card-copy">
-                <strong className="worker-name">{worker.name}</strong>
-                <WorkerClassification
-                  classification={worker.classification}
-                  className="worker-classification"
-                />
-                <WorkerContact worker={worker} className="worker-phone" />
-                <p className="assignment-count">
-                  {bookingsThisWeek.length === 1
-                    ? '1 booking this week'
-                    : `${bookingsThisWeek.length} bookings this week`}
-                </p>
+      {rows.length === 0 ? (
+        <EmptyBookings />
+      ) : (
+        <div className="booking-grid">
+          {rows.map(({ worker, booking }) => (
+            <article
+              className="worker-booking-card"
+              key={workerKey(worker) + '\u0000' + booking.key}
+            >
+              <div className="booking-worker">
+                <WorkerAvatar name={worker.name} photoUrl={worker.photoUrl} />
+                <div className="booking-worker-copy">
+                  <strong className="worker-name">{worker.name}</strong>
+                  <WorkerClassification
+                    classification={booking.classification ?? worker.classification}
+                    className="worker-classification"
+                  />
+                  <WorkerContact worker={worker} className="worker-phone" />
+                </div>
               </div>
+
+              <dl className="booking-details">
+                <div className="booking-detail">
+                  <dt>Start date</dt>
+                  <dd>{booking.startDate ? formatBookingDate(booking.startDate) : 'Not supplied'}</dd>
+                </div>
+                <div className="booking-detail">
+                  <dt>End date</dt>
+                  <dd>{bookingEndDateLabel(booking)}</dd>
+                </div>
+                <div className="booking-detail">
+                  <dt>End date status</dt>
+                  <dd className={bookingStatusClass(booking)}>
+                    {bookingStatusLabel(booking)}
+                  </dd>
+                </div>
+              </dl>
             </article>
-          );
-        })}
-      </div>
+          ))}
+        </div>
+      )}
     </section>
   );
 }
@@ -381,7 +554,7 @@ function WorkerContact({
   className: string;
 }) {
   return worker.phone ? (
-    <a className={className} href={`tel:${phoneHref(worker.phone)}`}>
+    <a className={className} href={'tel:' + phoneHref(worker.phone)}>
       {worker.phone}
     </a>
   ) : (
@@ -404,6 +577,18 @@ function EmptyWorkforce() {
   );
 }
 
+function EmptyBookings() {
+  return (
+    <section className="empty-state" aria-labelledby="empty-bookings-title">
+      <div className="empty-state-icon" aria-hidden="true">
+        —
+      </div>
+      <h2 id="empty-bookings-title">No worker bookings in this week</h2>
+      <p>Select another week to view its scheduled worker bookings.</p>
+    </section>
+  );
+}
+
 function weeklyClassificationCounts(
   workers: ClientWorker[],
   days: Date[],
@@ -412,7 +597,7 @@ function weeklyClassificationCounts(
   const counts = new Map<string, number>();
 
   for (const worker of workers) {
-    const classification = worker.classification?.trim();
+    const classification = workerClassificationForWeek(worker, weekDates)?.trim();
     const isBookedThisWeek = worker.assignedDates.some((date) => weekDates.has(date));
     if (!classification || !isBookedThisWeek) continue;
 
@@ -426,6 +611,94 @@ function weeklyClassificationCounts(
         right.count - left.count ||
         left.classification.localeCompare(right.classification, 'en-AU'),
     );
+}
+
+function workerBookingsForWeek(
+  workers: ClientWorker[],
+  days: Date[],
+): WorkerBookingRow[] {
+  const weekDates = new Set(days.map(dateKey));
+
+  return workers.flatMap((worker) =>
+    workerBookings(worker)
+      .filter((booking) => booking.assignedDates.some((date) => weekDates.has(date)))
+      .map((booking) => ({ worker, booking })),
+  );
+}
+
+function bookingForWeek(
+  worker: ClientWorker,
+  days: Date[],
+): ClientWorkerBooking | null {
+  const weekDates = new Set(days.map(dateKey));
+  return (
+    workerBookings(worker).find((booking) =>
+      booking.assignedDates.some((date) => weekDates.has(date)),
+    ) ?? null
+  );
+}
+
+function workerClassificationForWeek(
+  worker: ClientWorker,
+  weekDates: Set<string>,
+): string | null | undefined {
+  return (
+    workerBookings(worker).find((booking) =>
+      booking.assignedDates.some((date) => weekDates.has(date)),
+    )?.classification ?? worker.classification
+  );
+}
+
+function workerBookings(worker: ClientWorker): ClientWorkerBooking[] {
+  if (worker.bookings && worker.bookings.length > 0) return worker.bookings;
+
+  // Existing RPC responses that have not yet gained booking fields remain
+  // compatible with the new tab, but date/status cells stay "Not supplied".
+  return [
+    {
+      key: 'worker-fallback',
+      classification: worker.classification ?? null,
+      startDate: null,
+      endDate: null,
+      endDateConfirmed: null,
+      ongoing: null,
+      assignedDates: worker.assignedDates,
+    },
+  ];
+}
+
+function bookingEndDateLabel(booking: ClientWorkerBooking): string {
+  if (booking.ongoing === true) return 'Ongoing';
+  return booking.endDate ? formatBookingDate(booking.endDate) : 'Not supplied';
+}
+
+function bookingStatusLabel(booking: ClientWorkerBooking): string {
+  if (booking.ongoing === true) return 'Not applicable';
+  if (booking.endDateConfirmed === true) return 'Confirmed';
+  if (booking.endDateConfirmed === false) return 'Pending confirmation';
+  return 'Not supplied';
+}
+
+function bookingStatusClass(booking: ClientWorkerBooking): string {
+  if (booking.endDateConfirmed === true) {
+    return 'booking-status booking-status--confirmed';
+  }
+
+  if (booking.endDateConfirmed === false) {
+    return 'booking-status booking-status--pending';
+  }
+
+  return 'booking-status';
+}
+
+function mobileDayClassName(assigned: boolean, isToday: boolean): string {
+  return [
+    'mobile-day',
+    assigned ? 'mobile-day--assigned' : '',
+    isToday ? 'mobile-day--today' : '',
+  ]
+    .filter(Boolean)
+    .join(' ');
 }
 
 function mondayFor(date: Date): Date {
@@ -445,15 +718,23 @@ function dateKey(date: Date): string {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');
   const day = String(date.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
+  return year + '-' + month + '-' + day;
+}
+
+function formatBookingDate(value: string): string {
+  return bookingDate.format(localDateFromKey(value));
+}
+
+function formatScheduleDate(value: string): string {
+  return calendarDate.format(localDateFromKey(value));
 }
 
 function formatWeekRange(start: Date, end: Date): string {
   const sameMonth =
     start.getMonth() === end.getMonth() && start.getFullYear() === end.getFullYear();
   return sameMonth
-    ? `${rangeEndSameMonth.format(start)} – ${rangeStart.format(end)} ${end.getFullYear()}`
-    : `${rangeStart.format(start)} – ${rangeEndDifferentMonth.format(end)}`;
+    ? rangeEndSameMonth.format(start) + ' – ' + rangeStart.format(end) + ' ' + end.getFullYear()
+    : rangeStart.format(start) + ' – ' + rangeEndDifferentMonth.format(end);
 }
 
 function workerKey(worker: ClientWorker): string {

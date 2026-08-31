@@ -52,7 +52,6 @@ export default async function PortalPage() {
         workers={getDevelopmentPreviewWorkers()}
         clientName="Admin"
         title="Admin preview"
-        userEmail={user.email ?? 'Signed-in admin'}
         initialBusinessDate={businessTodayKey()}
         mode="admin-preview"
       />
@@ -77,7 +76,6 @@ export default async function PortalPage() {
     <ClientPortal
       workers={workers}
       clientName={clientDisplayName(user)}
-      userEmail={user.email ?? 'Signed-in client'}
       initialBusinessDate={businessTodayKey()}
       mode="authenticated"
     />

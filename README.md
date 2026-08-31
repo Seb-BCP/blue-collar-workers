@@ -55,10 +55,21 @@ client-provided parameters. The RPC derives client scope from the signed-in
 user's protected `app_metadata.client_id`. The browser never reads internal
 workforce tables.
 
-Production currently sends only worker name, phone, photo, and assigned dates
-to the interface. Classification totals appear in the development fixture only;
-the production summary stays hidden until a protected RPC contract explicitly
-returns an authorised classification. Worker photos use short-lived URLs
+Production currently receives only the fields emitted by the protected
+get_client_worker_calendar RPC. The interface is prepared to display an
+authorised classification, plus the following worker-booking fields when that
+same RPC is extended to return them:
+
+- booking_key (opaque response key only)
+- assignment_start_date
+- assignment_end_date
+- end_date_confirmed
+- ongoing_assignment
+
+The portal does not query assignments directly and must not infer booking days
+from a start/end date. Keep the RPC client-scoped from protected
+app_metadata.client_id, return no raw IDs or audit fields, and preserve its
+existing assignment eligibility rules. Worker photos use short-lived URLs
 created server-side from the authenticated user's session; the application
 contains no service-role key.
 

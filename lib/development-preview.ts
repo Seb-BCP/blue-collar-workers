@@ -1,4 +1,4 @@
-import type { ClientWorker } from '@/lib/client-workers';
+import type { ClientWorker, ClientWorkerBooking } from '@/lib/client-workers';
 import { businessTodayKey, localDateFromKey } from '@/lib/business-date';
 
 export const developmentPreviewClientName = 'Client';
@@ -27,6 +27,14 @@ export function getDevelopmentPreviewWorkers(): ClientWorker[] {
       photoUrl: '/mock-workers/jordan-mitchell.png',
       assignedDates: [day(0), day(1), day(2), day(3), day(4)],
       classification: 'Forklift',
+      bookings: [
+        fixtureBooking(
+          'jordan-mitchell-week-1',
+          'Forklift',
+          [day(0), day(1), day(2), day(3), day(4)],
+          true,
+        ),
+      ],
     },
     {
       name: 'Priya Nair',
@@ -34,6 +42,14 @@ export function getDevelopmentPreviewWorkers(): ClientWorker[] {
       photoUrl: null,
       assignedDates: [day(0), day(1), day(3), day(4)],
       classification: 'Forklift',
+      bookings: [
+        fixtureBooking(
+          'priya-nair-week-1',
+          'Forklift',
+          [day(0), day(1), day(3), day(4)],
+          false,
+        ),
+      ],
     },
     {
       name: 'Alex Morgan',
@@ -41,6 +57,15 @@ export function getDevelopmentPreviewWorkers(): ClientWorker[] {
       photoUrl: null,
       assignedDates: [day(1), day(2), day(3), day(4), day(5)],
       classification: 'Forklift',
+      bookings: [
+        fixtureBooking(
+          'alex-morgan-week-1',
+          'Forklift',
+          [day(1), day(2), day(3), day(4), day(5)],
+          null,
+          true,
+        ),
+      ],
     },
     {
       name: 'Tahlia Wood',
@@ -48,6 +73,14 @@ export function getDevelopmentPreviewWorkers(): ClientWorker[] {
       photoUrl: null,
       assignedDates: [day(0), day(2), day(4)],
       classification: 'Forklift',
+      bookings: [
+        fixtureBooking(
+          'tahlia-wood-week-1',
+          'Forklift',
+          [day(0), day(2), day(4)],
+          false,
+        ),
+      ],
     },
     {
       name: 'Samuel O’Connor-Williams',
@@ -55,6 +88,14 @@ export function getDevelopmentPreviewWorkers(): ClientWorker[] {
       photoUrl: null,
       assignedDates: [day(0), day(1), day(2), day(3), day(4)],
       classification: 'Forklift',
+      bookings: [
+        fixtureBooking(
+          'samuel-oconnor-williams-week-1',
+          'Forklift',
+          [day(0), day(1), day(2), day(3), day(4)],
+          true,
+        ),
+      ],
     },
     {
       name: 'Mia Clarke',
@@ -62,6 +103,14 @@ export function getDevelopmentPreviewWorkers(): ClientWorker[] {
       photoUrl: null,
       assignedDates: [day(1), day(2), day(4), day(5)],
       classification: 'HR',
+      bookings: [
+        fixtureBooking(
+          'mia-clarke-week-1',
+          'HR',
+          [day(1), day(2), day(4), day(5)],
+          true,
+        ),
+      ],
     },
     {
       name: 'Daniel Hart',
@@ -69,6 +118,14 @@ export function getDevelopmentPreviewWorkers(): ClientWorker[] {
       photoUrl: null,
       assignedDates: [day(0), day(1), day(2), day(3)],
       classification: 'Labourer',
+      bookings: [
+        fixtureBooking(
+          'daniel-hart-week-1',
+          'Labourer',
+          [day(0), day(1), day(2), day(3)],
+          false,
+        ),
+      ],
     },
     {
       name: 'Aisha Khan',
@@ -76,8 +133,34 @@ export function getDevelopmentPreviewWorkers(): ClientWorker[] {
       photoUrl: null,
       assignedDates: [day(2), day(3), day(4), day(6)],
       classification: 'Supervisor',
+      bookings: [
+        fixtureBooking(
+          'aisha-khan-week-1',
+          'Supervisor',
+          [day(2), day(3), day(4), day(6)],
+          true,
+        ),
+      ],
     },
   ];
+}
+
+function fixtureBooking(
+  key: string,
+  classification: string,
+  assignedDates: string[],
+  endDateConfirmed: boolean | null,
+  ongoing = false,
+): ClientWorkerBooking {
+  return {
+    key,
+    classification,
+    startDate: assignedDates[0] ?? null,
+    endDate: ongoing ? null : (assignedDates[assignedDates.length - 1] ?? null),
+    endDateConfirmed,
+    ongoing,
+    assignedDates,
+  };
 }
 
 function mondayFor(date: Date): Date {
