@@ -2,12 +2,14 @@
 
 import { useMemo, useState } from 'react';
 import type { ClientWorker } from '@/lib/client-workers';
+import { localDateFromKey } from '@/lib/business-date';
 import { LogoutButton } from '@/components/logout-button';
 import { WorkerAvatar } from '@/components/worker-avatar';
 
 type ClientPortalProps = {
   workers: ClientWorker[];
   userEmail: string;
+  initialBusinessDate: string;
 };
 
 const shortWeekday = new Intl.DateTimeFormat('en-AU', { weekday: 'short' });
@@ -27,13 +29,17 @@ const rangeEndDifferentMonth = new Intl.DateTimeFormat('en-AU', {
   year: 'numeric',
 });
 
-export function ClientPortal({ workers, userEmail }: ClientPortalProps) {
-  const [weekStart, setWeekStart] = useState(() => mondayFor(new Date()));
+export function ClientPortal({
+  workers,
+  userEmail,
+  initialBusinessDate,
+}: ClientPortalProps) {
+  const currentWeekStart = mondayFor(localDateFromKey(initialBusinessDate));
+  const [weekStart, setWeekStart] = useState(currentWeekStart);
   const days = useMemo(
     () => Array.from({ length: 7 }, (_, index) => addDays(weekStart, index)),
     [weekStart],
   );
-  const currentWeekStart = mondayFor(new Date());
   const isCurrentWeek = dateKey(weekStart) === dateKey(currentWeekStart);
   const weekRange = formatWeekRange(days[0], days[6]);
 
@@ -272,7 +278,7 @@ function MobileCalendar({
                   aria-label={`${shortWeekday.format(day)} ${calendarDate.format(day)}: ${assigned ? 'assigned' : 'not assigned'}`}
                 >
                   <span className="mobile-day-label">
-                    {shortWeekday.format(day).slice(0, 1)}
+                    {shortWeekday.format(day).slice(0, 2)}
                   </span>
                   <span className="mobile-day-number">{dayNumber.format(day)}</span>
                   <span className="mobile-day-check" aria-hidden="true">

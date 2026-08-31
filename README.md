@@ -51,3 +51,9 @@ appropriate only when the function returns a reasonably small history. If it
 returns a large historical dataset, stop and introduce a bounded, authorised
 backend RPC design rather than adding frontend filtering or a client-controlled
 `client_id`.
+
+The documented RPC intentionally provides no stable worker reference. V1 groups
+rows only from the allowed values (name, phone, and current photo location),
+which is safe but cannot perfectly distinguish two people with identical values.
+If that ambiguity exists in the source data, obtain approval to add a stable,
+opaque `worker_key` to the RPC contract; do not expose an internal database ID.

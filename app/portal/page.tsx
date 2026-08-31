@@ -8,6 +8,7 @@ import {
   withSignedPhotoUrls,
 } from '@/lib/client-workers';
 import { hasAuthorisedClientAccess } from '@/lib/auth';
+import { businessTodayKey } from '@/lib/business-date';
 import { isSupabaseConfigured } from '@/lib/env';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { signAuthorisedWorkerPhotos } from '@/lib/worker-photos';
@@ -39,7 +40,13 @@ export default async function PortalPage() {
   const signedPhotoUrls = await signAuthorisedWorkerPhotos(supabase, workerRecords);
   const workers = withSignedPhotoUrls(workerRecords, signedPhotoUrls);
 
-  return <ClientPortal workers={workers} userEmail={user.email ?? 'Signed-in client'} />;
+  return (
+    <ClientPortal
+      workers={workers}
+      userEmail={user.email ?? 'Signed-in client'}
+      initialBusinessDate={businessTodayKey()}
+    />
+  );
 }
 
 function NoClientAccess() {
