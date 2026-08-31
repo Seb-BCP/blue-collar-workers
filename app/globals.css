@@ -39,6 +39,7 @@ button:focus-visible, input:focus-visible { outline: 3px solid rgb(232 130 54 / 
 .user-context strong { font-size: .8rem; }
 .user-context span { color: var(--muted); font-size: .72rem; }
 .preview-badge { display: inline-flex; align-items: center; min-height: 31px; padding: 6px 10px; color: #7a4b16; background: #fff3e5; border: 1px solid #f4cfa6; border-radius: 999px; font-size: .72rem; font-weight: 750; white-space: nowrap; }
+.preview-badge--admin { color: #113e78; background: #edf4ff; border-color: #c8dcf7; }
 .preview-badge-short { display: none; }
 
 .portal-main { width: min(1440px, 100%); margin: 0 auto; padding: clamp(28px, 4vw, 56px) clamp(20px, 4vw, 64px) 64px; }

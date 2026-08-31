@@ -10,8 +10,9 @@ import { WorkerAvatar } from '@/components/worker-avatar';
 type ClientPortalProps = {
   workers: ClientWorker[];
   clientName: string;
+  title?: string;
   initialBusinessDate: string;
-  mode: 'authenticated' | 'development-preview';
+  mode: 'authenticated' | 'development-preview' | 'admin-preview';
   userEmail?: string;
 };
 
@@ -42,6 +43,7 @@ const rangeEndDifferentMonth = new Intl.DateTimeFormat('en-AU', {
 export function ClientPortal({
   workers,
   clientName,
+  title: titleOverride,
   userEmail,
   initialBusinessDate,
   mode,
@@ -59,13 +61,15 @@ export function ClientPortal({
   );
   const isCurrentWeek = dateKey(weekStart) === dateKey(currentWeekStart);
   const weekRange = formatWeekRange(days[0], days[6]);
-  const title = `${clientName}-BCP Workers`;
+  const title = titleOverride ?? `${clientName}-BCP Workers`;
+  const isDevelopmentPreview = mode === 'development-preview';
+  const isAdminPreview = mode === 'admin-preview';
 
   return (
     <div className="site-shell">
       <header className="topbar">
         <Brand />
-        {mode === 'development-preview' ? (
+        {isDevelopmentPreview ? (
           <span className="preview-badge">
             <span className="preview-badge-full">Development preview</span>
             <span className="preview-badge-short">Preview</span> · mock data
@@ -76,6 +80,12 @@ export function ClientPortal({
               <strong>Client portal</strong>
               <span>{userEmail}</span>
             </div>
+            {isAdminPreview ? (
+              <span className="preview-badge preview-badge--admin">
+                <span className="preview-badge-full">Admin preview</span>
+                <span className="preview-badge-short">Admin</span> · demo data
+              </span>
+            ) : null}
             <LogoutButton />
           </div>
         )}

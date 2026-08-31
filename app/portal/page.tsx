@@ -7,7 +7,11 @@ import {
   readClientWorkerCalendarRows,
   withSignedPhotoUrls,
 } from '@/lib/client-workers';
-import { clientDisplayName, hasAuthorisedClientAccess } from '@/lib/auth';
+import {
+  clientDisplayName,
+  hasAdminPreviewAccess,
+  hasAuthorisedClientAccess,
+} from '@/lib/auth';
 import { businessTodayKey } from '@/lib/business-date';
 import {
   getDevelopmentPreviewWorkers,
@@ -41,6 +45,19 @@ export default async function PortalPage() {
   } = await supabase.auth.getUser();
 
   if (!user) redirect('/login');
+
+  if (hasAdminPreviewAccess(user)) {
+    return (
+      <ClientPortal
+        workers={getDevelopmentPreviewWorkers()}
+        clientName="Admin"
+        title="Admin preview"
+        userEmail={user.email ?? 'Signed-in admin'}
+        initialBusinessDate={businessTodayKey()}
+        mode="admin-preview"
+      />
+    );
+  }
 
   if (!hasAuthorisedClientAccess(user)) {
     return <NoClientAccess />;

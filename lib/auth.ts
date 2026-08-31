@@ -4,10 +4,23 @@ import type { User } from '@supabase/supabase-js';
 
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const ADMIN_PREVIEW_EMAIL = 'sebastian@bluecollarpeople.com';
 
 export function hasAuthorisedClientAccess(user: User): boolean {
   const clientId = user.app_metadata.client_id;
   return typeof clientId === 'string' && UUID_PATTERN.test(clientId);
+}
+
+/**
+ * This is deliberately a UI-only preview role. It must match both the exact
+ * email and server-controlled app metadata, and never widens workforce data
+ * access or the client-scoped RPC.
+ */
+export function hasAdminPreviewAccess(user: User): boolean {
+  return (
+    user.email?.trim().toLowerCase() === ADMIN_PREVIEW_EMAIL &&
+    user.app_metadata.bcp_portal_preview === true
+  );
 }
 
 /**

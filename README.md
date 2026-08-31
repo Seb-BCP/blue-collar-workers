@@ -30,6 +30,15 @@ In Supabase Auth, add `http://localhost:3000/auth/callback` and the deployed
 Supabase Auth code uses `signInWithOtp`; it can be paired with a six-digit email
 OTP template and verification screen later without adding passwords.
 
+## One-user admin preview
+
+`sebastian@bluecollarpeople.com` can be granted a signed-in, UI-only admin
+preview with [supabase/admin-preview-access.sql](supabase/admin-preview-access.sql).
+Create or invite the user in Supabase Authentication > Users first (the portal
+intentionally does not self-register users), then run the SQL in the project
+SQL Editor and sign out and back in to refresh the JWT. This role renders
+clearly labelled demo data and never reads client workforce data.
+
 ## Production workforce security
 
 The production portal calls only `public.get_client_worker_calendar()` with no
