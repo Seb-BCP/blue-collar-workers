@@ -10,6 +10,15 @@ export function hasAuthorisedClientAccess(user: User): boolean {
   return typeof clientId === 'string' && UUID_PATTERN.test(clientId);
 }
 
+/**
+ * Client-facing wording is optional metadata only; access control always uses
+ * the protected client_id above. The fallback avoids displaying an internal ID.
+ */
+export function clientDisplayName(user: User): string {
+  const value = user.app_metadata.client_name;
+  return typeof value === 'string' && value.trim() ? value.trim() : 'Client';
+}
+
 export function safeInternalPath(value: string | null, fallback = '/portal') {
   if (!value || !value.startsWith('/') || value.startsWith('//')) return fallback;
 

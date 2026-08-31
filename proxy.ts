@@ -1,6 +1,7 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 import { getSupabaseBrowserEnv, isSupabaseConfigured } from '@/lib/env';
+import { isDevelopmentPreview } from '@/lib/development-preview';
 
 const RESPONSE_SECURITY_HEADERS: Record<string, string> = {
   'Cache-Control': 'private, no-store, max-age=0',
@@ -13,7 +14,7 @@ const RESPONSE_SECURITY_HEADERS: Record<string, string> = {
 export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request });
 
-  if (!isSupabaseConfigured()) {
+  if (isDevelopmentPreview() || !isSupabaseConfigured()) {
     return addSecurityHeaders(response);
   }
 

@@ -27,6 +27,8 @@ export type ClientWorker = {
   phone: string | null;
   photoUrl: string | null;
   assignedDates: string[];
+  /** Development preview only until the protected RPC provides this field. */
+  classification?: string | null;
 };
 
 type WorkerAccumulator = Omit<ClientWorkerRecord, 'assignedDates'> & {

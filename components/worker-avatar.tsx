@@ -26,7 +26,7 @@ export function WorkerAvatar({
     <span
       className="avatar"
       data-compact={compact || undefined}
-      aria-label={`${name} profile photo`}
+      aria-label={`${name} avatar`}
     >
       {photoUrl && !imageFailed ? (
         // A short-lived URL is generated server-side after the authorised RPC

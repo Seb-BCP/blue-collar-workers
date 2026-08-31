@@ -7,8 +7,13 @@ import {
   readClientWorkerCalendarRows,
   withSignedPhotoUrls,
 } from '@/lib/client-workers';
-import { hasAuthorisedClientAccess } from '@/lib/auth';
+import { clientDisplayName, hasAuthorisedClientAccess } from '@/lib/auth';
 import { businessTodayKey } from '@/lib/business-date';
+import {
+  getDevelopmentPreviewWorkers,
+  developmentPreviewClientName,
+  isDevelopmentPreview,
+} from '@/lib/development-preview';
 import { isSupabaseConfigured } from '@/lib/env';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { signAuthorisedWorkerPhotos } from '@/lib/worker-photos';
@@ -17,6 +22,17 @@ export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 export default async function PortalPage() {
+  if (isDevelopmentPreview()) {
+    return (
+      <ClientPortal
+        workers={getDevelopmentPreviewWorkers()}
+        clientName={developmentPreviewClientName}
+        initialBusinessDate={businessTodayKey()}
+        mode="development-preview"
+      />
+    );
+  }
+
   if (!isSupabaseConfigured()) return <ConfigurationRequired />;
 
   const supabase = await createSupabaseServerClient();
@@ -43,8 +59,10 @@ export default async function PortalPage() {
   return (
     <ClientPortal
       workers={workers}
+      clientName={clientDisplayName(user)}
       userEmail={user.email ?? 'Signed-in client'}
       initialBusinessDate={businessTodayKey()}
+      mode="authenticated"
     />
   );
 }

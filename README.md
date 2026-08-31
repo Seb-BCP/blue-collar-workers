@@ -1,59 +1,56 @@
 # Blue Collar People Client Portal
 
-A read-only Next.js client portal backed by the existing Work-Force Supabase
-project. It does not create or use a separate workforce data store.
+A standard Next.js application for Vercel, backed by the existing Work-Force
+Supabase project. It has no Cloudflare, Wrangler, or ChatGPT hosting dependency.
 
-## What the portal reads
+## Local development preview
 
-The portal calls only `public.get_client_worker_calendar()` for client-visible
-workforce information. It calls the function with no frontend-provided
-parameters; the function determines the authorised client from the signed-in
-user's `app_metadata.client_id` claim.
+Run `npm install` and `npm run dev`, then open `http://localhost:3000`.
 
-Only these fields are transformed for the interface:
+The development server intentionally opens the completed portal UI without a
+login. Its data comes only from `lib/development-preview.ts`, an approved-field
+fixture containing worker name, phone, photo, assigned dates, and the temporary
+classification labels used to preview booking totals. It never calls Supabase
+and cannot run in a production or Vercel preview deployment.
 
-- worker name
-- phone
-- private photo metadata used server-side to make a short-lived URL
-- assigned work dates
+## Logo handoff
 
-No page queries `worker_profiles`, `worker_ids`, `assignments`, `orders`, or
-`assignment_days`.
+The supplied logo is stored at `public/blue-collar-people-logo.png` and is used
+by both the header and login branding.
 
-## Local setup
+## Production configuration
 
-1. Copy `.env.example` to `.env.local` and add the existing Supabase project's
-   URL and anon/publishable key.
-2. In Supabase Auth, add `http://localhost:3000/auth/callback` and the deployed
-   `https://your-domain/auth/callback` to the redirect allow list.
-3. Start the portal with `npm run dev`.
+Copy `.env.example` to `.env.local` and supply the existing project values:
 
-The magic-link flow has `shouldCreateUser: false`; client users must be
-pre-provisioned and have a valid client UUID in protected Auth `app_metadata`.
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY` (or `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`)
 
-## Required Supabase checks before launch
+In Supabase Auth, add `http://localhost:3000/auth/callback` and the deployed
+`https://your-domain/auth/callback` to the redirect allow list. The retained
+Supabase Auth code uses `signInWithOtp`; it can be paired with a six-digit email
+OTP template and verification screen later without adding passwords.
 
-- Confirm `get_client_worker_calendar()` accepts no `client_id`, derives scope
-  from the JWT, returns only its documented fields, and is executable by
-  `authenticated` but not `anon`.
-- Confirm direct browser access to internal tables is denied by RLS for client
-  accounts. The portal UI alone cannot secure the shared project.
-- Keep `worker-documents` private. Its Storage RLS must permit an authenticated
-  client to create a signed URL only for photos from their authorised RPC
-  result. The app uses the user's session and never a service-role key.
-- Test two client accounts against the RPC and private Storage to confirm neither
-  can access the other's data or photos.
+## Production workforce security
+
+The production portal calls only `public.get_client_worker_calendar()` with no
+client-provided parameters. The RPC derives client scope from the signed-in
+user's protected `app_metadata.client_id`. The browser never reads internal
+workforce tables.
+
+Production currently sends only worker name, phone, photo, and assigned dates
+to the interface. Classification totals appear in the development fixture only;
+the production summary stays hidden until a protected RPC contract explicitly
+returns an authorised classification. Worker photos use short-lived URLs
+created server-side from the authenticated user's session; the application
+contains no service-role key.
+
+Before launch, verify that the RPC is executable by `authenticated` but not
+`anon`, direct table access is blocked by RLS, and Storage RLS allows each client
+only its own returned worker photos.
 
 ## Operational note
 
-V1 loads the RPC response once and filters weeks in the browser. That is
-appropriate only when the function returns a reasonably small history. If it
-returns a large historical dataset, stop and introduce a bounded, authorised
-backend RPC design rather than adding frontend filtering or a client-controlled
-`client_id`.
-
-The documented RPC intentionally provides no stable worker reference. V1 groups
-rows only from the allowed values (name, phone, and current photo location),
-which is safe but cannot perfectly distinguish two people with identical values.
-If that ambiguity exists in the source data, obtain approval to add a stable,
-opaque `worker_key` to the RPC contract; do not expose an internal database ID.
+V1 loads the RPC response once and filters the weekly view in the browser. Use
+this only while the returned history stays reasonably small. If it grows large,
+introduce a bounded authorised backend query instead of adding client-controlled
+scope or exposing additional fields.

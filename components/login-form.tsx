@@ -29,6 +29,10 @@ export function LoginForm({ callbackError }: LoginFormProps) {
         },
       });
 
+      // This deliberately remains Supabase OTP-based rather than password-based.
+      // When the email template and verification UI are ready, this request can
+      // support a 6-digit email token without changing portal authorisation.
+
       if (error) {
         setMessage('We could not send a sign-in link. Check the address and try again.');
         return;

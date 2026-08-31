@@ -3,13 +3,23 @@
 import { useMemo, useState } from 'react';
 import type { ClientWorker } from '@/lib/client-workers';
 import { localDateFromKey } from '@/lib/business-date';
+import { Brand } from '@/components/brand';
 import { LogoutButton } from '@/components/logout-button';
 import { WorkerAvatar } from '@/components/worker-avatar';
 
 type ClientPortalProps = {
   workers: ClientWorker[];
-  userEmail: string;
+  clientName: string;
   initialBusinessDate: string;
+  mode: 'authenticated' | 'development-preview';
+  userEmail?: string;
+};
+
+type WorkforceTab = 'tracker' | 'details';
+
+type ClassificationCount = {
+  classification: string;
+  count: number;
 };
 
 const shortWeekday = new Intl.DateTimeFormat('en-AU', { weekday: 'short' });
@@ -31,46 +41,49 @@ const rangeEndDifferentMonth = new Intl.DateTimeFormat('en-AU', {
 
 export function ClientPortal({
   workers,
+  clientName,
   userEmail,
   initialBusinessDate,
+  mode,
 }: ClientPortalProps) {
   const currentWeekStart = mondayFor(localDateFromKey(initialBusinessDate));
   const [weekStart, setWeekStart] = useState(currentWeekStart);
+  const [activeTab, setActiveTab] = useState<WorkforceTab>('tracker');
   const days = useMemo(
     () => Array.from({ length: 7 }, (_, index) => addDays(weekStart, index)),
     [weekStart],
   );
+  const classificationCounts = useMemo(
+    () => weeklyClassificationCounts(workers, days),
+    [workers, days],
+  );
   const isCurrentWeek = dateKey(weekStart) === dateKey(currentWeekStart);
   const weekRange = formatWeekRange(days[0], days[6]);
+  const title = `${clientName}-BCP Workers`;
 
   return (
     <div className="site-shell">
       <header className="topbar">
-        <div className="brand" aria-label="Blue Collar People">
-          <span className="brand-mark" aria-hidden="true">
-            <span>BC</span>
+        <Brand />
+        {mode === 'development-preview' ? (
+          <span className="preview-badge">
+            <span className="preview-badge-full">Development preview</span>
+            <span className="preview-badge-short">Preview</span> · mock data
           </span>
-          <span>Blue Collar People</span>
-        </div>
-        <div className="user-controls">
-          <div className="user-context">
-            <strong>Client portal</strong>
-            <span>{userEmail}</span>
+        ) : (
+          <div className="user-controls">
+            <div className="user-context">
+              <strong>Client portal</strong>
+              <span>{userEmail}</span>
+            </div>
+            <LogoutButton />
           </div>
-          <LogoutButton />
-        </div>
+        )}
       </header>
 
       <main className="portal-main">
         <section className="page-heading" aria-labelledby="portal-title">
-          <div>
-            <p className="eyebrow">Current workforce</p>
-            <h1 id="portal-title">Your team, at a glance.</h1>
-            <p>
-              See the people currently assigned to your workforce and their
-              schedule for the week ahead.
-            </p>
-          </div>
+          <h1 id="portal-title">{title}</h1>
           <div
             className="workforce-summary"
             aria-label={`${workers.length} current workers`}
@@ -83,48 +96,97 @@ export function ClientPortal({
         {workers.length === 0 ? (
           <EmptyWorkforce />
         ) : (
-          <PortalContent
-            workers={workers}
-            days={days}
-            weekRange={weekRange}
-            isCurrentWeek={isCurrentWeek}
-            onPreviousWeek={() => setWeekStart((week) => addDays(week, -7))}
-            onNextWeek={() => setWeekStart((week) => addDays(week, 7))}
-            onCurrentWeek={() => setWeekStart(currentWeekStart)}
-          />
+          <>
+            <WorkforceTabs activeTab={activeTab} onSelect={setActiveTab} />
+            <PortalContent
+              activeTab={activeTab}
+              workers={workers}
+              days={days}
+              weekRange={weekRange}
+              isCurrentWeek={isCurrentWeek}
+              todayKey={initialBusinessDate}
+              classificationCounts={classificationCounts}
+              onPreviousWeek={() => setWeekStart((week) => addDays(week, -7))}
+              onNextWeek={() => setWeekStart((week) => addDays(week, 7))}
+              onCurrentWeek={() => setWeekStart(currentWeekStart)}
+            />
+          </>
         )}
       </main>
     </div>
   );
 }
 
+function WorkforceTabs({
+  activeTab,
+  onSelect,
+}: {
+  activeTab: WorkforceTab;
+  onSelect: (tab: WorkforceTab) => void;
+}) {
+  return (
+    <div className="workforce-tabs" role="tablist" aria-label="Workforce views">
+      <button
+        id="worker-tracker-tab"
+        className="workforce-tab"
+        type="button"
+        role="tab"
+        aria-controls="worker-tracker-panel"
+        aria-selected={activeTab === 'tracker'}
+        onClick={() => onSelect('tracker')}
+      >
+        Worker tracker
+      </button>
+      <button
+        id="worker-details-tab"
+        className="workforce-tab"
+        type="button"
+        role="tab"
+        aria-controls="worker-details-panel"
+        aria-selected={activeTab === 'details'}
+        onClick={() => onSelect('details')}
+      >
+        Worker details
+      </button>
+    </div>
+  );
+}
+
 type PortalContentProps = {
+  activeTab: WorkforceTab;
   workers: ClientWorker[];
   days: Date[];
   weekRange: string;
   isCurrentWeek: boolean;
+  todayKey: string;
+  classificationCounts: ClassificationCount[];
   onPreviousWeek: () => void;
   onNextWeek: () => void;
   onCurrentWeek: () => void;
 };
 
 function PortalContent({
+  activeTab,
   workers,
   days,
   weekRange,
   isCurrentWeek,
+  todayKey,
+  classificationCounts,
   onPreviousWeek,
   onNextWeek,
   onCurrentWeek,
 }: PortalContentProps) {
-  return (
-    <div className="portal-sections">
-      <section aria-labelledby="workers-title">
+  if (activeTab === 'details') {
+    return (
+      <section
+        id="worker-details-panel"
+        className="tab-panel"
+        role="tabpanel"
+        aria-labelledby="worker-details-tab"
+      >
         <div className="section-heading">
-          <div>
-            <h2 id="workers-title">Current workers</h2>
-            <p>Each person appears once, even when booked for multiple days.</p>
-          </div>
+          <h2>Worker details</h2>
         </div>
         <div className="worker-grid">
           {workers.map((worker) => (
@@ -132,13 +194,7 @@ function PortalContent({
               <WorkerAvatar name={worker.name} photoUrl={worker.photoUrl} />
               <div className="worker-card-copy">
                 <strong className="worker-name">{worker.name}</strong>
-                {worker.phone ? (
-                  <a className="worker-phone" href={`tel:${phoneHref(worker.phone)}`}>
-                    {worker.phone}
-                  </a>
-                ) : (
-                  <span className="worker-phone">Phone not available</span>
-                )}
+                <WorkerContact worker={worker} className="worker-phone" />
                 <p className="assignment-count">
                   {worker.assignedDates.length === 1
                     ? '1 assigned day'
@@ -149,51 +205,71 @@ function PortalContent({
           ))}
         </div>
       </section>
+    );
+  }
 
-      <section aria-labelledby="calendar-title">
-        <div className="section-heading">
-          <div>
-            <h2 id="calendar-title">Weekly assignments</h2>
-            <p>Green checks show days a worker is assigned.</p>
+  return (
+    <section
+      id="worker-tracker-panel"
+      className="tab-panel"
+      role="tabpanel"
+      aria-labelledby="worker-tracker-tab"
+    >
+      <div className="section-heading">
+        <h2>Weekly bookings</h2>
+      </div>
+      <div className="calendar-card">
+        <div className="calendar-toolbar">
+          <p className="week-label" aria-live="polite">
+            {weekRange}
+          </p>
+          <div className="week-controls" aria-label="Calendar week controls">
+            <button
+              className="button button--calendar"
+              type="button"
+              onClick={onPreviousWeek}
+            >
+              <span aria-hidden="true">‹</span> Previous
+            </button>
+            <button
+              className="button button--calendar"
+              type="button"
+              onClick={onCurrentWeek}
+              disabled={isCurrentWeek}
+            >
+              This week
+            </button>
+            <button
+              className="button button--calendar"
+              type="button"
+              onClick={onNextWeek}
+            >
+              Next <span aria-hidden="true">›</span>
+            </button>
           </div>
         </div>
-        <div className="calendar-card">
-          <div className="calendar-toolbar">
-            <p className="week-label" aria-live="polite">
-              {weekRange}
-            </p>
-            <div className="week-controls" aria-label="Calendar week controls">
-              <button
-                className="icon-button"
-                type="button"
-                onClick={onPreviousWeek}
-                aria-label="Previous week"
-              >
-                ‹
-              </button>
-              <button
-                className="button"
-                type="button"
-                onClick={onCurrentWeek}
-                disabled={isCurrentWeek}
-              >
-                This week
-              </button>
-              <button
-                className="icon-button"
-                type="button"
-                onClick={onNextWeek}
-                aria-label="Next week"
-              >
-                ›
-              </button>
-            </div>
-          </div>
 
-          <DesktopCalendar workers={workers} days={days} />
-          <MobileCalendar workers={workers} days={days} />
-        </div>
-      </section>
+        <ClassificationSummary counts={classificationCounts} />
+        <DesktopCalendar workers={workers} days={days} todayKey={todayKey} />
+        <MobileCalendar workers={workers} days={days} todayKey={todayKey} />
+      </div>
+    </section>
+  );
+}
+
+function ClassificationSummary({ counts }: { counts: ClassificationCount[] }) {
+  if (counts.length === 0) return null;
+
+  return (
+    <div className="classification-summary" aria-label="Weekly bookings by classification">
+      <span className="classification-summary-label">By classification</span>
+      <ul className="classification-list">
+        {counts.map(({ classification, count }) => (
+          <li className="classification-chip" key={classification}>
+            <strong>{count}</strong> {classification}
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }
@@ -201,7 +277,8 @@ function PortalContent({
 function DesktopCalendar({
   workers,
   days,
-}: Pick<PortalContentProps, 'workers' | 'days'>) {
+  todayKey,
+}: Pick<PortalContentProps, 'workers' | 'days' | 'todayKey'>) {
   return (
     <div className="calendar-table-wrap">
       <table className="calendar-table">
@@ -209,7 +286,7 @@ function DesktopCalendar({
           <tr>
             <th scope="col">Worker</th>
             {days.map((day) => (
-              <th key={dateKey(day)} scope="col">
+              <th key={dateKey(day)} scope="col" data-today={dateKey(day) === todayKey}>
                 {shortWeekday.format(day)}
                 <span>{calendarDate.format(day)}</span>
               </th>
@@ -226,7 +303,10 @@ function DesktopCalendar({
                     photoUrl={worker.photoUrl}
                     compact
                   />
-                  <span className="calendar-worker-name">{worker.name}</span>
+                  <div className="calendar-worker-copy">
+                    <span className="calendar-worker-name">{worker.name}</span>
+                    <WorkerContact worker={worker} className="calendar-worker-phone" />
+                  </div>
                 </div>
               </td>
               {days.map((day) => {
@@ -234,6 +314,7 @@ function DesktopCalendar({
                 return (
                   <td
                     key={dateKey(day)}
+                    data-today={dateKey(day) === todayKey}
                     aria-label={`${worker.name}: ${assigned ? 'assigned' : 'not assigned'} on ${calendarDate.format(day)}`}
                   >
                     {assigned ? (
@@ -259,21 +340,27 @@ function DesktopCalendar({
 function MobileCalendar({
   workers,
   days,
-}: Pick<PortalContentProps, 'workers' | 'days'>) {
+  todayKey,
+}: Pick<PortalContentProps, 'workers' | 'days' | 'todayKey'>) {
   return (
     <div className="mobile-schedule">
       {workers.map((worker) => (
         <article className="mobile-schedule-worker" key={workerKey(worker)}>
           <div className="calendar-worker">
             <WorkerAvatar name={worker.name} photoUrl={worker.photoUrl} compact />
-            <span className="calendar-worker-name">{worker.name}</span>
+            <div className="calendar-worker-copy">
+              <span className="calendar-worker-name">{worker.name}</span>
+              <WorkerContact worker={worker} className="calendar-worker-phone" />
+            </div>
           </div>
           <div className="mobile-days" aria-label={`${worker.name}'s weekly assignments`}>
             {days.map((day) => {
               const assigned = worker.assignedDates.includes(dateKey(day));
               return (
                 <div
-                  className={`mobile-day${assigned ? ' mobile-day--assigned' : ''}`}
+                  className={`mobile-day${assigned ? ' mobile-day--assigned' : ''}${
+                    dateKey(day) === todayKey ? ' mobile-day--today' : ''
+                  }`}
                   key={dateKey(day)}
                   aria-label={`${shortWeekday.format(day)} ${calendarDate.format(day)}: ${assigned ? 'assigned' : 'not assigned'}`}
                 >
@@ -294,6 +381,22 @@ function MobileCalendar({
   );
 }
 
+function WorkerContact({
+  worker,
+  className,
+}: {
+  worker: ClientWorker;
+  className: string;
+}) {
+  return worker.phone ? (
+    <a className={className} href={`tel:${phoneHref(worker.phone)}`}>
+      {worker.phone}
+    </a>
+  ) : (
+    <span className={className}>Phone not available</span>
+  );
+}
+
 function EmptyWorkforce() {
   return (
     <section className="empty-state" aria-labelledby="empty-workforce-title">
@@ -307,6 +410,30 @@ function EmptyWorkforce() {
       </p>
     </section>
   );
+}
+
+function weeklyClassificationCounts(
+  workers: ClientWorker[],
+  days: Date[],
+): ClassificationCount[] {
+  const weekDates = new Set(days.map(dateKey));
+  const counts = new Map<string, number>();
+
+  for (const worker of workers) {
+    const classification = worker.classification?.trim();
+    const isBookedThisWeek = worker.assignedDates.some((date) => weekDates.has(date));
+    if (!classification || !isBookedThisWeek) continue;
+
+    counts.set(classification, (counts.get(classification) ?? 0) + 1);
+  }
+
+  return [...counts]
+    .map(([classification, count]) => ({ classification, count }))
+    .sort(
+      (left, right) =>
+        right.count - left.count ||
+        left.classification.localeCompare(right.classification, 'en-AU'),
+    );
 }
 
 function mondayFor(date: Date): Date {
@@ -333,7 +460,7 @@ function formatWeekRange(start: Date, end: Date): string {
   const sameMonth =
     start.getMonth() === end.getMonth() && start.getFullYear() === end.getFullYear();
   return sameMonth
-    ? `${rangeStart.format(start)} – ${rangeEndSameMonth.format(end)} ${end.getFullYear()}`
+    ? `${rangeEndSameMonth.format(start)} – ${rangeStart.format(end)} ${end.getFullYear()}`
     : `${rangeStart.format(start)} – ${rangeEndDifferentMonth.format(end)}`;
 }
 

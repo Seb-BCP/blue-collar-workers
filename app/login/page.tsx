@@ -3,6 +3,7 @@ import { Brand } from '@/components/brand';
 import { ConfigurationRequired } from '@/components/configuration-required';
 import { LoginForm } from '@/components/login-form';
 import { isSupabaseConfigured } from '@/lib/env';
+import { isDevelopmentPreview } from '@/lib/development-preview';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 
 export const dynamic = 'force-dynamic';
@@ -12,6 +13,8 @@ type LoginPageProps = {
 };
 
 export default async function LoginPage({ searchParams }: LoginPageProps) {
+  if (isDevelopmentPreview()) redirect('/portal');
+
   if (!isSupabaseConfigured()) return <ConfigurationRequired />;
 
   const supabase = await createSupabaseServerClient();
@@ -27,7 +30,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
       <section className="auth-card" aria-labelledby="login-title">
         <Brand />
         <p className="eyebrow">Client portal</p>
-        <h1 id="login-title">Your workforce, clearly in view.</h1>
+        <h1 id="login-title">Your team, clearly in view.</h1>
         <p>
           Enter your work email and we’ll send a secure sign-in link. No password
           needed.
