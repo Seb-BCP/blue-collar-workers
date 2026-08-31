@@ -1,9 +1,18 @@
 import type { Metadata } from 'next';
 import './globals.css';
 
+const deploymentUrl =
+  process.env.VERCEL_PROJECT_PRODUCTION_URL ?? process.env.VERCEL_URL;
+
 export const metadata: Metadata = {
-  title: 'Blue Collar People | Client Portal',
-  description: 'Your current workforce and weekly assignments.',
+  metadataBase: new URL(
+    deploymentUrl ? 'https://' + deploymentUrl : 'http://localhost:3000',
+  ),
+  title: 'Client Portal | Blue Collar People',
+  description: 'Blue Collar People client workforce and weekly assignments.',
+  twitter: {
+    card: 'summary_large_image',
+  },
   robots: {
     index: false,
     follow: false,
