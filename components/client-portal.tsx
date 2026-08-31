@@ -322,10 +322,15 @@ function DesktopCalendar({
         </thead>
         <tbody>
           {workers.map((worker) => {
+            const classifications = classificationsForWeek(worker, days);
+
             return (
               <tr key={workerKey(worker)}>
                 <td>
-                  <WorkerScheduleIdentity worker={worker} />
+                  <WorkerScheduleIdentity
+                    worker={worker}
+                    classification={classifications.join(' · ') || null}
+                  />
                 </td>
                 {days.map((day) => {
                   const assigned = worker.assignedDates.includes(dateKey(day));
@@ -371,9 +376,14 @@ function MobileCalendar({
   return (
     <div className="mobile-schedule">
       {workers.map((worker) => {
+        const classifications = classificationsForWeek(worker, days);
+
         return (
           <article className="mobile-schedule-worker" key={workerKey(worker)}>
-            <WorkerScheduleIdentity worker={worker} />
+            <WorkerScheduleIdentity
+              worker={worker}
+              classification={classifications.join(' · ') || null}
+            />
             <div className="mobile-days" aria-label={worker.name + "'s weekly assignments"}>
               {days.map((day) => {
                 const assigned = worker.assignedDates.includes(dateKey(day));
@@ -409,14 +419,20 @@ function MobileCalendar({
   );
 }
 
-function WorkerScheduleIdentity({ worker }: { worker: ClientWorker }) {
+function WorkerScheduleIdentity({
+  worker,
+  classification,
+}: {
+  worker: ClientWorker;
+  classification: string | null;
+}) {
   return (
     <div className="calendar-worker">
       <WorkerAvatar name={worker.name} photoUrl={worker.photoUrl} compact />
       <div className="calendar-worker-copy">
         <span className="calendar-worker-name">{worker.name}</span>
         <WorkerClassification
-          classification={worker.classification}
+          classification={classification}
           className="calendar-worker-classification"
         />
         <WorkerContact worker={worker} className="calendar-worker-phone" />
@@ -464,7 +480,7 @@ function WorkerBookings({
                       <div className="booking-worker-copy">
                         <strong className="worker-name">{worker.name}</strong>
                         <WorkerClassification
-                          classification={worker.classification}
+                          classification={booking.classification}
                           className="worker-classification"
                         />
                         <WorkerContact worker={worker} className="worker-phone" />
@@ -554,15 +570,12 @@ function weeklyClassificationCounts(
   workers: ClientWorker[],
   days: Date[],
 ): ClassificationCount[] {
-  const weekDates = new Set(days.map(dateKey));
   const counts = new Map<string, number>();
 
   for (const worker of workers) {
-    const classification = worker.classification?.trim();
-    const isBookedThisWeek = worker.assignedDates.some((date) => weekDates.has(date));
-    if (!classification || !isBookedThisWeek) continue;
-
-    counts.set(classification, (counts.get(classification) ?? 0) + 1);
+    for (const classification of classificationsForWeek(worker, days)) {
+      counts.set(classification, (counts.get(classification) ?? 0) + 1);
+    }
   }
 
   return [...counts]
@@ -572,6 +585,21 @@ function weeklyClassificationCounts(
         right.count - left.count ||
         left.classification.localeCompare(right.classification, 'en-AU'),
     );
+}
+
+function classificationsForWeek(worker: ClientWorker, days: Date[]): string[] {
+  const weekDates = new Set(days.map(dateKey));
+  const classifications = new Set<string>();
+
+  for (const booking of workerBookings(worker)) {
+    const classification = booking.classification?.trim();
+    const isBookedThisWeek = booking.assignedDates.some((date) => weekDates.has(date));
+    if (classification && isBookedThisWeek) classifications.add(classification);
+  }
+
+  return [...classifications].sort((left, right) =>
+    left.localeCompare(right, 'en-AU'),
+  );
 }
 
 function visibleWorkerBookings(

@@ -1,10 +1,12 @@
 /**
  * The full and only client-facing contract of
  * public.get_client_worker_calendar(). Assignment dates come only from
- * public.assignments; work dates come only from public.assignment_days.
+ * public.assignments; classification comes only from the assignment's linked
+ * public.classifications row; work dates come only from public.assignment_days.
  */
 export type ClientWorkerCalendarRow = {
   worker_name: string;
+  classification: string | null;
   phone: string | null;
   photo_bucket: string | null;
   photo_path: string | null;
@@ -22,6 +24,7 @@ export type ClientWorkerBooking = {
    * displayed to a client.
    */
   key: string;
+  classification: string | null;
   startDate: string | null;
   endDate: string | null;
   endDateConfirmed: boolean;
@@ -47,7 +50,6 @@ export type ClientWorker = {
   phone: string | null;
   photoUrl: string | null;
   assignedDates: string[];
-  classification?: string | null;
   bookings: ClientWorkerBooking[];
 };
 
@@ -180,6 +182,7 @@ function isClientWorkerCalendarRow(
   return (
     typeof row.worker_name === 'string' &&
     row.worker_name.trim().length > 0 &&
+    isNullableString(row.classification) &&
     isNullableString(row.phone) &&
     isNullableString(row.photo_bucket) &&
     isNullableString(row.photo_path) &&
@@ -212,6 +215,7 @@ function bookingFromRow(
   row: ClientWorkerCalendarRow,
 ): Omit<ClientWorkerBooking, 'key' | 'assignedDates'> {
   return {
+    classification: normaliseNullableText(row.classification),
     startDate: optionalDateKey(row.start_date),
     endDate: optionalDateKey(row.end_date),
     endDateConfirmed: row.end_date_confirmed,
@@ -225,6 +229,7 @@ function bookingGroupingKey(
   // assignment fields create a local grouping only; they are not a lookup key.
   return [
     'assignment',
+    booking.classification ?? '',
     booking.startDate ?? '',
     booking.endDate ?? '',
     booking.endDateConfirmed ? 'confirmed' : 'not-confirmed',

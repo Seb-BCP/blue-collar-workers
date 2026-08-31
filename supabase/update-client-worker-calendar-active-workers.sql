@@ -7,6 +7,7 @@
 create or replace function public.get_client_worker_calendar()
 returns table (
   worker_name text,
+  classification text,
   phone text,
   photo_bucket text,
   photo_path text,
@@ -45,6 +46,7 @@ begin
 
   select distinct
     wi.worker as worker_name,
+    classification.name as classification,
     wp.phone,
     wp.profile_photo_bucket as photo_bucket,
     wp.profile_photo_path as photo_path,
@@ -59,6 +61,9 @@ begin
 
   join public.assignments a
     on a.order_id = o.id
+
+  left join public.classifications classification
+    on classification.id = a.classification_id
 
   join public.worker_profiles wp
     on wp.id = a.worker_profile_id

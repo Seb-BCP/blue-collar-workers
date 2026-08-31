@@ -58,6 +58,7 @@ workforce tables.
 The protected get_client_worker_calendar RPC returns worker name/contact/photo
 fields plus:
 
+- classification from assignments.classification_id joined to classifications.name
 - work_date from assignment_days, used only for individual weekly calendar days
 - start_date from assignments
 - end_date from assignments

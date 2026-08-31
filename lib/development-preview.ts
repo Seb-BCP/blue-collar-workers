@@ -14,7 +14,7 @@ export function isDevelopmentPreview(): boolean {
 /**
  * Isolated fixture data for the unauthenticated local preview.
  * Do not reuse this data in production or make the workforce RPC anonymous.
- * Classification is included solely to preview the requested booking summary.
+ * Classification is attached to each assignment fixture, matching the RPC.
  */
 export function getDevelopmentPreviewWorkers(): ClientWorker[] {
   const monday = mondayFor(localDateFromKey(businessTodayKey()));
@@ -26,13 +26,13 @@ export function getDevelopmentPreviewWorkers(): ClientWorker[] {
       phone: '0412 345 678',
       photoUrl: '/mock-workers/jordan-mitchell.png',
       assignedDates: [day(0), day(1), day(2), day(3), day(4)],
-      classification: 'Forklift',
       bookings: [
         fixtureBooking(
           'jordan-mitchell-week-1',
           day(-4),
           day(4),
           true,
+          'Forklift',
           [day(0), day(1), day(2), day(3), day(4)],
         ),
       ],
@@ -42,13 +42,13 @@ export function getDevelopmentPreviewWorkers(): ClientWorker[] {
       phone: '0438 691 420',
       photoUrl: null,
       assignedDates: [day(0), day(1), day(3), day(4)],
-      classification: 'Forklift',
       bookings: [
         fixtureBooking(
           'priya-nair-week-1',
           day(-3),
           day(7),
           false,
+          'Forklift',
           [day(0), day(1), day(3), day(4)],
         ),
       ],
@@ -58,13 +58,13 @@ export function getDevelopmentPreviewWorkers(): ClientWorker[] {
       phone: null,
       photoUrl: null,
       assignedDates: [day(1), day(2), day(3), day(4), day(5)],
-      classification: 'Forklift',
       bookings: [
         fixtureBooking(
           'alex-morgan-week-1',
           day(-14),
           null,
           false,
+          'Forklift',
           [day(1), day(2), day(3), day(4), day(5)],
         ),
       ],
@@ -74,13 +74,13 @@ export function getDevelopmentPreviewWorkers(): ClientWorker[] {
       phone: '0401 853 279',
       photoUrl: null,
       assignedDates: [day(0), day(2), day(4)],
-      classification: 'Forklift',
       bookings: [
         fixtureBooking(
           'tahlia-wood-week-1',
           day(-2),
           day(10),
           false,
+          'Forklift',
           [day(0), day(2), day(4)],
         ),
       ],
@@ -90,13 +90,13 @@ export function getDevelopmentPreviewWorkers(): ClientWorker[] {
       phone: '0427 710 496',
       photoUrl: null,
       assignedDates: [day(0), day(1), day(2), day(3), day(4)],
-      classification: 'Forklift',
       bookings: [
         fixtureBooking(
           'samuel-oconnor-williams-week-1',
           day(0),
           day(4),
           true,
+          'Forklift',
           [day(0), day(1), day(2), day(3), day(4)],
         ),
       ],
@@ -106,13 +106,13 @@ export function getDevelopmentPreviewWorkers(): ClientWorker[] {
       phone: '0450 230 118',
       photoUrl: null,
       assignedDates: [day(1), day(2), day(4), day(5)],
-      classification: 'HR',
       bookings: [
         fixtureBooking(
           'mia-clarke-week-1',
           day(-1),
           day(8),
           true,
+          'HR',
           [day(1), day(2), day(4), day(5)],
         ),
       ],
@@ -122,13 +122,13 @@ export function getDevelopmentPreviewWorkers(): ClientWorker[] {
       phone: '0419 562 310',
       photoUrl: null,
       assignedDates: [day(0), day(1), day(2), day(3)],
-      classification: 'Labourer',
       bookings: [
         fixtureBooking(
           'daniel-hart-week-1',
           day(-7),
           day(3),
           false,
+          'Labourer',
           [day(0), day(1), day(2), day(3)],
         ),
       ],
@@ -138,13 +138,13 @@ export function getDevelopmentPreviewWorkers(): ClientWorker[] {
       phone: '0408 984 507',
       photoUrl: null,
       assignedDates: [day(2), day(3), day(4), day(6)],
-      classification: 'Supervisor',
       bookings: [
         fixtureBooking(
           'aisha-khan-week-1',
           day(-5),
           null,
           false,
+          'Supervisor',
           [day(2), day(3), day(4), day(6)],
         ),
       ],
@@ -157,10 +157,12 @@ function fixtureBooking(
   startDate: string | null,
   endDate: string | null,
   endDateConfirmed: boolean,
+  classification: string | null,
   assignedDates: string[],
 ): ClientWorkerBooking {
   return {
     key,
+    classification,
     startDate,
     endDate,
     endDateConfirmed,
