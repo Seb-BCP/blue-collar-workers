@@ -113,7 +113,8 @@ button:focus-visible, input:focus-visible { outline: 3px solid rgb(57 119 223 / 
 .calendar-table thead { background: #f9fbff; }
 .calendar-table th { padding: 15px 8px 14px; color: var(--muted); font-size: .7rem; font-weight: 780; letter-spacing: .06em; text-align: center; text-transform: uppercase; }
 .calendar-table th:first-child { width: min(36vw, 360px); padding-left: clamp(18px, 2.2vw, 28px); text-align: left; }
-.calendar-table th span { display: block; margin-top: 2px; color: var(--ink); font-size: .9rem; letter-spacing: -.02em; text-transform: none; }
+.calendar-table th > span { display: block; margin-top: 2px; color: var(--ink); font-size: .9rem; letter-spacing: -.02em; text-transform: none; }
+.calendar-table th .calendar-day-summary { display: grid; gap: 2px; margin-top: 7px; color: var(--blue-dark); font-size: .63rem; font-weight: 720; letter-spacing: 0; line-height: 1.22; text-transform: none; }
 .calendar-table th[data-today="true"] { color: var(--blue); }
 .calendar-table td { height: 94px; padding: 8px; text-align: center; }
 .calendar-table td:first-child { padding-left: clamp(18px, 2.2vw, 28px); text-align: left; }

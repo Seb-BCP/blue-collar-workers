@@ -312,12 +312,25 @@ function DesktopCalendar({
         <thead>
           <tr>
             <th scope="col">Worker</th>
-            {days.map((day) => (
-              <th key={dateKey(day)} scope="col" data-today={dateKey(day) === todayKey}>
-                {shortWeekday.format(day)}
-                <span>{calendarDate.format(day)}</span>
-              </th>
-            ))}
+            {days.map((day) => {
+              const dayCounts = dailyClassificationCounts(workers, day);
+
+              return (
+                <th key={dateKey(day)} scope="col" data-today={dateKey(day) === todayKey}>
+                  {shortWeekday.format(day)}
+                  <span>{calendarDate.format(day)}</span>
+                  {dayCounts.length > 0 ? (
+                    <span className="calendar-day-summary">
+                      {dayCounts.map(({ classification, count }) => (
+                        <span key={classification}>
+                          {dailyClassificationLabel(classification, count)}
+                        </span>
+                      ))}
+                    </span>
+                  ) : null}
+                </th>
+              );
+            })}
           </tr>
         </thead>
         <tbody>
@@ -517,7 +530,7 @@ function WorkerClassification({
   classification: string | null | undefined;
   className: string;
 }) {
-  const value = classification?.trim();
+  const value = clientClassificationLabel(classification);
   if (!value) return null;
 
   return <span className={className}>{value}</span>;
@@ -592,7 +605,7 @@ function classificationsForWeek(worker: ClientWorker, days: Date[]): string[] {
   const classifications = new Set<string>();
 
   for (const booking of workerBookings(worker)) {
-    const classification = booking.classification?.trim();
+    const classification = clientClassificationLabel(booking.classification);
     const isBookedThisWeek = booking.assignedDates.some((date) => weekDates.has(date));
     if (classification && isBookedThisWeek) classifications.add(classification);
   }
@@ -600,6 +613,50 @@ function classificationsForWeek(worker: ClientWorker, days: Date[]): string[] {
   return [...classifications].sort((left, right) =>
     left.localeCompare(right, 'en-AU'),
   );
+}
+
+function dailyClassificationCounts(
+  workers: ClientWorker[],
+  day: Date,
+): ClassificationCount[] {
+  const workDate = dateKey(day);
+  const counts = new Map<string, number>();
+
+  for (const worker of workers) {
+    const classifications = new Set<string>();
+
+    for (const booking of workerBookings(worker)) {
+      const classification = clientClassificationLabel(booking.classification);
+      if (classification && booking.assignedDates.includes(workDate)) {
+        classifications.add(classification);
+      }
+    }
+
+    for (const classification of classifications) {
+      counts.set(classification, (counts.get(classification) ?? 0) + 1);
+    }
+  }
+
+  return [...counts]
+    .map(([classification, count]) => ({ classification, count }))
+    .sort(
+      (left, right) =>
+        right.count - left.count ||
+        left.classification.localeCompare(right.classification, 'en-AU'),
+    );
+}
+
+function clientClassificationLabel(classification: string | null | undefined): string | null {
+  const value = classification?.trim();
+  if (!value) return null;
+
+  return value.toLocaleLowerCase('en-AU') === 'clab' ? 'Labourer' : value;
+}
+
+function dailyClassificationLabel(classification: string, count: number): string {
+  return String(count) + ' ' + (classification === 'Labourer' && count !== 1
+    ? 'Labourers'
+    : classification);
 }
 
 function visibleWorkerBookings(
