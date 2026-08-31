@@ -71,11 +71,18 @@ with a confirmed end date disappear only after that end date has passed.
 
 Keep the RPC client-scoped from protected app_metadata.client_id, return no raw
 IDs or audit fields, and preserve its existing assignment eligibility rules.
-The RPC must require active orders, assignments, and worker profiles; use
-[supabase/update-client-worker-calendar-active-workers.sql](supabase/update-client-worker-calendar-active-workers.sql)
-to add the worker-profile predicate without exposing its is_active field.
+The RPC must require active orders, assignments, and worker profiles. It also
+must exclude an assignment after its confirmed end date has passed in
+Australia/Perth. Use
+[supabase/update-client-worker-calendar-current-workforce.sql](supabase/update-client-worker-calendar-current-workforce.sql)
+to apply both rules without exposing an is_active field.
 Worker photos use short-lived URLs created server-side from the authenticated
 user's session; the application contains no service-role key.
+
+If a worker still appears unexpectedly, use
+[supabase/diagnose-client-worker-visibility.sql](supabase/diagnose-client-worker-visibility.sql)
+in the SQL Editor. It checks the live RPC definition and reports which
+order/assignment/profile condition allowed the named worker to be returned.
 
 Before launch, verify that the RPC is executable by `authenticated` but not
 `anon`, direct table access is blocked by RLS, and Storage RLS allows each client
