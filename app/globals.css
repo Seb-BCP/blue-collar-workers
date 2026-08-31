@@ -67,24 +67,27 @@ button:focus-visible, input:focus-visible { outline: 3px solid rgb(57 119 223 / 
 .schedule-section { min-width: 0; }
 
 .worker-bookings { min-width: 0; }
-.booking-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(315px, 1fr)); gap: 16px; }
-.worker-booking-card { display: grid; gap: 18px; min-width: 0; padding: 19px; background: linear-gradient(145deg, #ffffff, #fbfdff); border: 1px solid var(--line); border-radius: 18px; box-shadow: 0 8px 22px rgb(31 67 118 / 5%); transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease; }
-.worker-booking-card:hover { border-color: var(--blue-line); box-shadow: 0 14px 28px rgb(31 67 118 / 10%); transform: translateY(-2px); }
-.booking-worker { display: flex; align-items: center; gap: 15px; min-width: 0; }
+.booking-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; background: linear-gradient(145deg, #ffffff, #fbfdff); border: 1px solid var(--line); border-radius: 20px; box-shadow: 0 8px 22px rgb(31 67 118 / 5%); }
+.booking-table { width: 100%; min-width: 760px; border-spacing: 0; border-collapse: separate; }
+.booking-table th, .booking-table td { border-bottom: 1px solid #e7eef8; }
+.booking-table thead { background: #f7faff; }
+.booking-table th { padding: 15px 17px; color: var(--muted); font-size: .68rem; font-weight: 800; letter-spacing: .06em; text-align: left; text-transform: uppercase; white-space: nowrap; }
+.booking-table th:first-child, .booking-table td:first-child { width: 40%; padding-left: clamp(18px, 2.2vw, 28px); }
+.booking-table td { padding: 16px 17px; color: var(--ink); font-size: .86rem; font-weight: 660; vertical-align: middle; }
+.booking-table tbody tr:last-child td { border-bottom: 0; }
+.booking-table tbody tr:hover td { background: #fafdff; }
+.booking-worker { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.booking-worker .avatar { width: 42px; height: 42px; border-radius: 13px; font-size: .7rem; }
 .booking-worker-copy { display: grid; min-width: 0; gap: 3px; }
 .worker-name { display: block; overflow: hidden; color: var(--ink); font-size: .98rem; font-weight: 750; letter-spacing: -.02em; text-overflow: ellipsis; white-space: nowrap; }
 .worker-classification, .calendar-worker-classification { display: inline-flex; align-items: center; width: fit-content; max-width: 100%; overflow: hidden; color: var(--blue-dark); font-size: .68rem; font-weight: 760; letter-spacing: .02em; text-overflow: ellipsis; text-transform: uppercase; white-space: nowrap; }
 .worker-classification { margin-top: 1px; padding: 4px 7px; background: var(--blue-pale); border: 1px solid var(--blue-line); border-radius: 999px; }
 .worker-phone { display: inline-block; max-width: 100%; margin-top: 2px; overflow: hidden; color: var(--blue-dark); font-size: .86rem; font-weight: 650; text-decoration: none; text-overflow: ellipsis; white-space: nowrap; }
 .worker-phone:hover { text-decoration: underline; }
-.booking-details { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 0; padding-top: 14px; border-top: 1px solid #e7eef8; }
-.booking-detail { min-width: 0; }
-.booking-detail dt { margin: 0 0 4px; color: var(--muted); font-size: .62rem; font-weight: 800; letter-spacing: .055em; text-transform: uppercase; }
-.booking-detail dd { margin: 0; overflow: hidden; color: var(--ink); font-size: .75rem; font-weight: 720; line-height: 1.35; text-overflow: ellipsis; }
-.booking-status { color: var(--muted) !important; }
-.booking-status--ongoing { color: var(--blue-dark) !important; }
-.booking-status--confirmed { color: #1f5faf !important; }
-.booking-status--pending { color: #86550f !important; }
+.booking-date-cell, .booking-confirmation-cell { white-space: nowrap; }
+.booking-status { display: inline-flex; align-items: center; min-height: 27px; padding: 4px 8px; border-radius: 999px; font-size: .72rem; font-weight: 760; letter-spacing: .01em; }
+.booking-status--confirmed { color: #1f5faf; background: #edf4ff; border: 1px solid #c8dcf7; }
+.booking-status--pending { color: #86550f; background: #fff7e7; border: 1px solid #f2dbab; }
 .avatar { position: relative; display: grid; flex: 0 0 auto; width: 57px; height: 57px; place-items: center; overflow: hidden; color: var(--blue-dark); background: linear-gradient(145deg, #e2edff, #f6f9ff); border: 1px solid var(--blue-line); border-radius: 17px; font-size: .94rem; font-weight: 850; letter-spacing: -.04em; }
 .avatar img { width: 100%; height: 100%; object-fit: cover; }
 
@@ -122,7 +125,6 @@ button:focus-visible, input:focus-visible { outline: 3px solid rgb(57 119 223 / 
 .calendar-worker-copy { display: grid; min-width: 0; gap: 2px; }
 .calendar-worker-name { overflow: hidden; color: var(--ink); font-size: .88rem; font-weight: 740; text-overflow: ellipsis; white-space: nowrap; }
 .calendar-worker-classification { color: var(--blue-dark); font-size: .63rem; }
-.calendar-worker-booking { display: block; max-width: 100%; overflow: hidden; color: #516b8e; font-size: .62rem; font-weight: 620; line-height: 1.28; text-overflow: ellipsis; white-space: nowrap; }
 .calendar-worker-phone { display: block; overflow: hidden; color: var(--blue-dark); font-size: .72rem; font-weight: 650; line-height: 1.25; text-decoration: none; text-overflow: ellipsis; white-space: nowrap; }
 a.calendar-worker-phone:hover { text-decoration: underline; }
 .assignment-mark { display: inline-grid; width: 29px; height: 29px; place-items: center; color: white; background: var(--blue); border-radius: 999px; box-shadow: 0 3px 8px rgb(57 119 223 / 22%); font-size: .83rem; font-weight: 900; }
@@ -175,9 +177,12 @@ a.calendar-worker-phone:hover { text-decoration: underline; }
   .workforce-summary { display: inline-flex; margin-top: 20px; }
   .portal-tabs { margin-bottom: 16px; overflow-x: auto; }
   .portal-tab { flex: 0 0 auto; min-height: 44px; padding-right: 13px; padding-left: 13px; font-size: .84rem; }
-  .booking-grid { grid-template-columns: 1fr; gap: 10px; }
-  .worker-booking-card { gap: 16px; padding: 17px; }
-  .booking-details { gap: 6px; }
+  .booking-table-wrap { border-radius: 16px; }
+  .booking-table { min-width: 690px; }
+  .booking-table th { padding: 13px 14px; }
+  .booking-table td { padding: 14px; }
+  .booking-table th:first-child, .booking-table td:first-child { padding-left: 17px; }
+  .booking-worker .avatar { width: 38px; height: 38px; border-radius: 12px; }
   .calendar-card { padding: 17px; }
   .calendar-toolbar { align-items: flex-start; flex-direction: column; gap: 14px; }
   .week-controls { width: 100%; }

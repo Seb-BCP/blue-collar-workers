@@ -140,7 +140,7 @@ export function ClientPortal({
             {activeTab === 'schedule' ? (
               <WeeklySchedule {...scheduleProps} />
             ) : (
-              <WorkerBookings workers={workers} />
+              <WorkerBookings workers={workers} todayKey={initialBusinessDate} />
             )}
           </div>
         )}
@@ -322,12 +322,10 @@ function DesktopCalendar({
         </thead>
         <tbody>
           {workers.map((worker) => {
-            const booking = bookingForWeek(worker, days);
-
             return (
               <tr key={workerKey(worker)}>
                 <td>
-                  <WorkerScheduleIdentity worker={worker} booking={booking} />
+                  <WorkerScheduleIdentity worker={worker} />
                 </td>
                 {days.map((day) => {
                   const assigned = worker.assignedDates.includes(dateKey(day));
@@ -373,11 +371,9 @@ function MobileCalendar({
   return (
     <div className="mobile-schedule">
       {workers.map((worker) => {
-        const booking = bookingForWeek(worker, days);
-
         return (
           <article className="mobile-schedule-worker" key={workerKey(worker)}>
-            <WorkerScheduleIdentity worker={worker} booking={booking} />
+            <WorkerScheduleIdentity worker={worker} />
             <div className="mobile-days" aria-label={worker.name + "'s weekly assignments"}>
               {days.map((day) => {
                 const assigned = worker.assignedDates.includes(dateKey(day));
@@ -413,13 +409,7 @@ function MobileCalendar({
   );
 }
 
-function WorkerScheduleIdentity({
-  worker,
-  booking,
-}: {
-  worker: ClientWorker;
-  booking: ClientWorkerBooking | null;
-}) {
+function WorkerScheduleIdentity({ worker }: { worker: ClientWorker }) {
   return (
     <div className="calendar-worker">
       <WorkerAvatar name={worker.name} photoUrl={worker.photoUrl} compact />
@@ -429,35 +419,17 @@ function WorkerScheduleIdentity({
           classification={worker.classification}
           className="calendar-worker-classification"
         />
-        <WorkerBookingSummary booking={booking} />
         <WorkerContact worker={worker} className="calendar-worker-phone" />
       </div>
     </div>
   );
 }
 
-function WorkerBookingSummary({ booking }: { booking: ClientWorkerBooking | null }) {
-  if (!booking) return null;
-
-  const parts = [
-    booking.startDate ? 'Start ' + formatScheduleDate(booking.startDate) : null,
-    booking.endDate === null
-      ? 'Ongoing'
-      : 'End ' + formatScheduleDate(booking.endDate),
-    booking.endDate === null
-      ? null
-      : booking.endDateConfirmed === true
-        ? 'End date confirmed'
-        : 'End date not confirmed',
-  ].filter((value): value is string => Boolean(value));
-
-  if (parts.length === 0) return null;
-
-  return <span className="calendar-worker-booking">{parts.join(' · ')}</span>;
-}
-
-function WorkerBookings({ workers }: Pick<WeeklyScheduleProps, 'workers'>) {
-  const rows = allWorkerBookings(workers);
+function WorkerBookings({
+  workers,
+  todayKey,
+}: Pick<WeeklyScheduleProps, 'workers' | 'todayKey'>) {
+  const rows = visibleWorkerBookings(workers, todayKey);
 
   return (
     <section
@@ -469,42 +441,53 @@ function WorkerBookings({ workers }: Pick<WeeklyScheduleProps, 'workers'>) {
       {rows.length === 0 ? (
         <EmptyBookings />
       ) : (
-        <div className="booking-grid">
-          {rows.map(({ worker, booking }) => (
-            <article
-              className="worker-booking-card"
-              key={workerKey(worker) + '\u0000' + booking.key}
-            >
-              <div className="booking-worker">
-                <WorkerAvatar name={worker.name} photoUrl={worker.photoUrl} />
-                <div className="booking-worker-copy">
-                  <strong className="worker-name">{worker.name}</strong>
-                  <WorkerClassification
-                    classification={worker.classification}
-                    className="worker-classification"
-                  />
-                  <WorkerContact worker={worker} className="worker-phone" />
-                </div>
-              </div>
-
-              <dl className="booking-details">
-                <div className="booking-detail">
-                  <dt>Start date</dt>
-                  <dd>{booking.startDate ? formatBookingDate(booking.startDate) : 'Not supplied'}</dd>
-                </div>
-                <div className="booking-detail">
-                  <dt>End date</dt>
-                  <dd>{bookingEndDateLabel(booking)}</dd>
-                </div>
-                <div className="booking-detail">
-                  <dt>End date status</dt>
-                  <dd className={bookingStatusClass(booking)}>
-                    {bookingStatusLabel(booking)}
-                  </dd>
-                </div>
-              </dl>
-            </article>
-          ))}
+        <div className="booking-table-wrap">
+          <table className="booking-table">
+            <thead>
+              <tr>
+                <th scope="col">Worker</th>
+                <th scope="col">Start Date</th>
+                <th scope="col">End Date (planned)</th>
+                <th scope="col">Last day confirmed</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map(({ worker, booking }) => (
+                <tr key={workerKey(worker) + '\u0000' + booking.key}>
+                  <td>
+                    <div className="booking-worker">
+                      <WorkerAvatar
+                        name={worker.name}
+                        photoUrl={worker.photoUrl}
+                        compact
+                      />
+                      <div className="booking-worker-copy">
+                        <strong className="worker-name">{worker.name}</strong>
+                        <WorkerClassification
+                          classification={worker.classification}
+                          className="worker-classification"
+                        />
+                        <WorkerContact worker={worker} className="worker-phone" />
+                      </div>
+                    </div>
+                  </td>
+                  <td className="booking-date-cell">
+                    {booking.startDate
+                      ? formatBookingDate(booking.startDate)
+                      : 'Not supplied'}
+                  </td>
+                  <td className="booking-date-cell">{bookingEndDateLabel(booking)}</td>
+                  <td className="booking-confirmation-cell">
+                    {booking.endDate !== null ? (
+                      <span className={bookingConfirmationClass(booking)}>
+                        {bookingConfirmationLabel(booking)}
+                      </span>
+                    ) : null}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
     </section>
@@ -591,22 +574,25 @@ function weeklyClassificationCounts(
     );
 }
 
-function allWorkerBookings(workers: ClientWorker[]): WorkerBookingRow[] {
+function visibleWorkerBookings(
+  workers: ClientWorker[],
+  todayKey: string,
+): WorkerBookingRow[] {
   return workers.flatMap((worker) =>
     workerBookings(worker)
+      .filter((booking) => shouldShowWorkerBooking(booking, todayKey))
       .map((booking) => ({ worker, booking })),
   );
 }
 
-function bookingForWeek(
-  worker: ClientWorker,
-  days: Date[],
-): ClientWorkerBooking | null {
-  const weekDates = new Set(days.map(dateKey));
-  return (
-    workerBookings(worker).find((booking) =>
-      booking.assignedDates.some((date) => weekDates.has(date)),
-    ) ?? null
+function shouldShowWorkerBooking(
+  booking: ClientWorkerBooking,
+  todayKey: string,
+): boolean {
+  return !(
+    booking.endDate !== null &&
+    booking.endDateConfirmed === true &&
+    todayKey > booking.endDate
   );
 }
 
@@ -618,18 +604,13 @@ function bookingEndDateLabel(booking: ClientWorkerBooking): string {
   return booking.endDate === null ? 'Ongoing' : formatBookingDate(booking.endDate);
 }
 
-function bookingStatusLabel(booking: ClientWorkerBooking): string {
-  if (booking.endDate === null) return 'Ongoing';
+function bookingConfirmationLabel(booking: ClientWorkerBooking): string {
   return booking.endDateConfirmed === true
-    ? 'End date confirmed'
+    ? 'End Date Confirmed'
     : 'End date not confirmed';
 }
 
-function bookingStatusClass(booking: ClientWorkerBooking): string {
-  if (booking.endDate === null) {
-    return 'booking-status booking-status--ongoing';
-  }
-
+function bookingConfirmationClass(booking: ClientWorkerBooking): string {
   if (booking.endDateConfirmed === true) {
     return 'booking-status booking-status--confirmed';
   }
@@ -669,10 +650,6 @@ function dateKey(date: Date): string {
 
 function formatBookingDate(value: string): string {
   return bookingDate.format(localDateFromKey(value));
-}
-
-function formatScheduleDate(value: string): string {
-  return calendarDate.format(localDateFromKey(value));
 }
 
 function formatWeekRange(start: Date, end: Date): string {

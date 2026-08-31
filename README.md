@@ -66,11 +66,14 @@ fields plus:
 The portal does not query assignments directly and never derives booking days
 or assignment dates from orders. A null work_date is retained for the Worker
 bookings tab but creates no calendar day. A null end_date is displayed as
-Ongoing; otherwise the portal displays End date confirmed only when
-end_date_confirmed is true.
+Ongoing; a confirmed end date is labelled End Date Confirmed. Worker bookings
+with a confirmed end date disappear only after that end date has passed.
 
 Keep the RPC client-scoped from protected app_metadata.client_id, return no raw
 IDs or audit fields, and preserve its existing assignment eligibility rules.
+The RPC must require active orders, assignments, and worker profiles; use
+[supabase/update-client-worker-calendar-active-workers.sql](supabase/update-client-worker-calendar-active-workers.sql)
+to add the worker-profile predicate without exposing its is_active field.
 Worker photos use short-lived URLs created server-side from the authenticated
 user's session; the application contains no service-role key.
 
