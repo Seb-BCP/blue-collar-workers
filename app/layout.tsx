@@ -8,7 +8,7 @@ export const metadata: Metadata = {
   metadataBase: new URL(
     deploymentUrl ? 'https://' + deploymentUrl : 'http://localhost:3000',
   ),
-  title: 'Client Portal | Blue Collar People',
+  title: 'Blue Collar People | Client Portal',
   description: 'Blue Collar People client workforce and weekly assignments.',
   twitter: {
     card: 'summary_large_image',
