@@ -1,6 +1,8 @@
 /** The full and only client-facing contract of public.get_client_worker_calendar(). */
 export type ClientWorkerCalendarRow = {
   worker_name: string;
+  /** Optional until the protected RPC is extended to provide it. */
+  classification?: string | null;
   phone: string | null;
   photo_bucket: string | null;
   photo_path: string | null;
@@ -17,6 +19,7 @@ type WorkerPhotoSource = {
 
 export type ClientWorkerRecord = {
   name: string;
+  classification: string | null;
   phone: string | null;
   photo: WorkerPhotoSource | null;
   assignedDates: string[];
@@ -60,11 +63,13 @@ export function groupClientWorkers(
 
     if (existing) {
       existing.assignedDates.add(workDate);
+      existing.classification ??= normaliseOptionalText(row.classification);
       continue;
     }
 
     workers.set(key, {
       name: row.worker_name.trim(),
+      classification: normaliseOptionalText(row.classification),
       phone: normaliseNullableText(row.phone),
       photo,
       assignedDates: new Set([workDate]),
@@ -85,6 +90,7 @@ export function withSignedPhotoUrls(
 ): ClientWorker[] {
   return workers.map((worker) => ({
     name: worker.name,
+    classification: worker.classification,
     phone: worker.phone,
     photoUrl: worker.photo
       ? (photoUrls.get(photoLocationKey(worker.photo)) ?? null)
@@ -117,6 +123,7 @@ function isClientWorkerCalendarRow(
   return (
     typeof row.worker_name === 'string' &&
     row.worker_name.trim().length > 0 &&
+    isOptionalNullableString(row.classification) &&
     isNullableString(row.phone) &&
     isNullableString(row.photo_bucket) &&
     isNullableString(row.photo_path) &&
@@ -128,6 +135,10 @@ function isClientWorkerCalendarRow(
 
 function isNullableString(value: unknown): value is string | null {
   return typeof value === 'string' || value === null;
+}
+
+function isOptionalNullableString(value: unknown): value is string | null | undefined {
+  return value === undefined || isNullableString(value);
 }
 
 function photoSource(row: ClientWorkerCalendarRow): WorkerPhotoSource | null {
@@ -158,6 +169,10 @@ function workerGroupingKey(
 function normaliseNullableText(value: string | null): string | null {
   const normalised = value?.trim() ?? '';
   return normalised || null;
+}
+
+function normaliseOptionalText(value: string | null | undefined): string | null {
+  return typeof value === 'string' ? normaliseNullableText(value) : null;
 }
 
 function dateKey(value: string): string | null {

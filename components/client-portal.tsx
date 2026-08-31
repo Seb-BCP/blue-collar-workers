@@ -16,8 +16,6 @@ type ClientPortalProps = {
   userEmail?: string;
 };
 
-type WorkforceTab = 'tracker' | 'details';
-
 type ClassificationCount = {
   classification: string;
   count: number;
@@ -50,7 +48,6 @@ export function ClientPortal({
 }: ClientPortalProps) {
   const currentWeekStart = mondayFor(localDateFromKey(initialBusinessDate));
   const [weekStart, setWeekStart] = useState(currentWeekStart);
-  const [activeTab, setActiveTab] = useState<WorkforceTab>('tracker');
   const days = useMemo(
     () => Array.from({ length: 7 }, (_, index) => addDays(weekStart, index)),
     [weekStart],
@@ -61,7 +58,7 @@ export function ClientPortal({
   );
   const isCurrentWeek = dateKey(weekStart) === dateKey(currentWeekStart);
   const weekRange = formatWeekRange(days[0], days[6]);
-  const title = titleOverride ?? `${clientName}-BCP Workers`;
+  const title = titleOverride ?? `${clientName} – BCP Workers`;
   const isDevelopmentPreview = mode === 'development-preview';
   const isAdminPreview = mode === 'admin-preview';
 
@@ -93,7 +90,9 @@ export function ClientPortal({
 
       <main className="portal-main">
         <section className="page-heading" aria-labelledby="portal-title">
-          <h1 id="portal-title">{title}</h1>
+          <h1 className="portal-title" id="portal-title">
+            {title}
+          </h1>
           <div
             className="workforce-summary"
             aria-label={`${workers.length} current workers`}
@@ -107,9 +106,7 @@ export function ClientPortal({
           <EmptyWorkforce />
         ) : (
           <>
-            <WorkforceTabs activeTab={activeTab} onSelect={setActiveTab} />
-            <PortalContent
-              activeTab={activeTab}
+            <WeeklySchedule
               workers={workers}
               days={days}
               weekRange={weekRange}
@@ -120,6 +117,7 @@ export function ClientPortal({
               onNextWeek={() => setWeekStart((week) => addDays(week, 7))}
               onCurrentWeek={() => setWeekStart(currentWeekStart)}
             />
+            <WorkerBookings workers={workers} days={days} />
           </>
         )}
       </main>
@@ -127,43 +125,7 @@ export function ClientPortal({
   );
 }
 
-function WorkforceTabs({
-  activeTab,
-  onSelect,
-}: {
-  activeTab: WorkforceTab;
-  onSelect: (tab: WorkforceTab) => void;
-}) {
-  return (
-    <div className="workforce-tabs" role="tablist" aria-label="Workforce views">
-      <button
-        id="worker-tracker-tab"
-        className="workforce-tab"
-        type="button"
-        role="tab"
-        aria-controls="worker-tracker-panel"
-        aria-selected={activeTab === 'tracker'}
-        onClick={() => onSelect('tracker')}
-      >
-        Worker tracker
-      </button>
-      <button
-        id="worker-details-tab"
-        className="workforce-tab"
-        type="button"
-        role="tab"
-        aria-controls="worker-details-panel"
-        aria-selected={activeTab === 'details'}
-        onClick={() => onSelect('details')}
-      >
-        Worker details
-      </button>
-    </div>
-  );
-}
-
-type PortalContentProps = {
-  activeTab: WorkforceTab;
+type WeeklyScheduleProps = {
   workers: ClientWorker[];
   days: Date[];
   weekRange: string;
@@ -175,8 +137,7 @@ type PortalContentProps = {
   onCurrentWeek: () => void;
 };
 
-function PortalContent({
-  activeTab,
+function WeeklySchedule({
   workers,
   days,
   weekRange,
@@ -186,47 +147,11 @@ function PortalContent({
   onPreviousWeek,
   onNextWeek,
   onCurrentWeek,
-}: PortalContentProps) {
-  if (activeTab === 'details') {
-    return (
-      <section
-        id="worker-details-panel"
-        className="tab-panel"
-        role="tabpanel"
-        aria-labelledby="worker-details-tab"
-      >
-        <div className="section-heading">
-          <h2>Worker details</h2>
-        </div>
-        <div className="worker-grid">
-          {workers.map((worker) => (
-            <article className="worker-card" key={workerKey(worker)}>
-              <WorkerAvatar name={worker.name} photoUrl={worker.photoUrl} />
-              <div className="worker-card-copy">
-                <strong className="worker-name">{worker.name}</strong>
-                <WorkerContact worker={worker} className="worker-phone" />
-                <p className="assignment-count">
-                  {worker.assignedDates.length === 1
-                    ? '1 assigned day'
-                    : `${worker.assignedDates.length} assigned days`}
-                </p>
-              </div>
-            </article>
-          ))}
-        </div>
-      </section>
-    );
-  }
-
+}: WeeklyScheduleProps) {
   return (
-    <section
-      id="worker-tracker-panel"
-      className="tab-panel"
-      role="tabpanel"
-      aria-labelledby="worker-tracker-tab"
-    >
-      <div className="section-heading">
-        <h2>Weekly bookings</h2>
+    <section className="schedule-section" aria-labelledby="weekly-schedule-title">
+      <div className="section-tab">
+        <h2 id="weekly-schedule-title">Weekly schedule</h2>
       </div>
       <div className="calendar-card">
         <div className="calendar-toolbar">
@@ -271,7 +196,7 @@ function ClassificationSummary({ counts }: { counts: ClassificationCount[] }) {
   if (counts.length === 0) return null;
 
   return (
-    <div className="classification-summary" aria-label="Weekly bookings by classification">
+    <div className="classification-summary" aria-label="Weekly schedule by classification">
       <span className="classification-summary-label">By classification</span>
       <ul className="classification-list">
         {counts.map(({ classification, count }) => (
@@ -288,7 +213,7 @@ function DesktopCalendar({
   workers,
   days,
   todayKey,
-}: Pick<PortalContentProps, 'workers' | 'days' | 'todayKey'>) {
+}: Pick<WeeklyScheduleProps, 'workers' | 'days' | 'todayKey'>) {
   return (
     <div className="calendar-table-wrap">
       <table className="calendar-table">
@@ -315,6 +240,10 @@ function DesktopCalendar({
                   />
                   <div className="calendar-worker-copy">
                     <span className="calendar-worker-name">{worker.name}</span>
+                    <WorkerClassification
+                      classification={worker.classification}
+                      className="calendar-worker-classification"
+                    />
                     <WorkerContact worker={worker} className="calendar-worker-phone" />
                   </div>
                 </div>
@@ -351,7 +280,7 @@ function MobileCalendar({
   workers,
   days,
   todayKey,
-}: Pick<PortalContentProps, 'workers' | 'days' | 'todayKey'>) {
+}: Pick<WeeklyScheduleProps, 'workers' | 'days' | 'todayKey'>) {
   return (
     <div className="mobile-schedule">
       {workers.map((worker) => (
@@ -360,6 +289,10 @@ function MobileCalendar({
             <WorkerAvatar name={worker.name} photoUrl={worker.photoUrl} compact />
             <div className="calendar-worker-copy">
               <span className="calendar-worker-name">{worker.name}</span>
+              <WorkerClassification
+                classification={worker.classification}
+                className="calendar-worker-classification"
+              />
               <WorkerContact worker={worker} className="calendar-worker-phone" />
             </div>
           </div>
@@ -389,6 +322,55 @@ function MobileCalendar({
       ))}
     </div>
   );
+}
+
+function WorkerBookings({ workers, days }: Pick<WeeklyScheduleProps, 'workers' | 'days'>) {
+  const weekDates = new Set(days.map(dateKey));
+
+  return (
+    <section className="worker-bookings" aria-labelledby="worker-bookings-title">
+      <div className="section-heading">
+        <h2 id="worker-bookings-title">Worker bookings</h2>
+      </div>
+      <div className="worker-grid">
+        {workers.map((worker) => {
+          const bookingsThisWeek = worker.assignedDates.filter((date) => weekDates.has(date));
+
+          return (
+            <article className="worker-card" key={workerKey(worker)}>
+              <WorkerAvatar name={worker.name} photoUrl={worker.photoUrl} />
+              <div className="worker-card-copy">
+                <strong className="worker-name">{worker.name}</strong>
+                <WorkerClassification
+                  classification={worker.classification}
+                  className="worker-classification"
+                />
+                <WorkerContact worker={worker} className="worker-phone" />
+                <p className="assignment-count">
+                  {bookingsThisWeek.length === 1
+                    ? '1 booking this week'
+                    : `${bookingsThisWeek.length} bookings this week`}
+                </p>
+              </div>
+            </article>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+function WorkerClassification({
+  classification,
+  className,
+}: {
+  classification: string | null | undefined;
+  className: string;
+}) {
+  const value = classification?.trim();
+  if (!value) return null;
+
+  return <span className={className}>{value}</span>;
 }
 
 function WorkerContact({
