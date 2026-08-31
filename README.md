@@ -25,10 +25,18 @@ Copy `.env.example` to `.env.local` and supply the existing project values:
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY` (or `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`)
 
-In Supabase Auth, add `http://localhost:3000/auth/callback` and the deployed
-`https://your-domain/auth/callback` to the redirect allow list. The retained
-Supabase Auth code uses `signInWithOtp`; it can be paired with a six-digit email
-OTP template and verification screen later without adding passwords.
+In Supabase Auth, enable the Email provider with password sign-in. Create client
+accounts in Authentication > Users and give each account its password directly;
+the portal never offers public sign-up. The account must then be assigned to its
+client with protected `app_metadata` as described below.
+
+## Client access assignment
+
+The portal authenticates existing email-and-password accounts and derives the
+client scope from protected `app_metadata.client_id`. Use
+[supabase/assign-client-access.sql](supabase/assign-client-access.sql) after
+creating each user. Set the target client's real UUID in the script, then have
+the user sign out and back in so their session receives the new claim.
 
 ## One-user admin preview
 

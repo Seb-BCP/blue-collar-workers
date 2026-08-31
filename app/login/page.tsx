@@ -29,16 +29,8 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
     <main className="auth-shell">
       <section className="auth-card" aria-labelledby="login-title">
         <Brand />
-        <p className="eyebrow">Client portal</p>
-        <h1 id="login-title">Your team, clearly in view.</h1>
-        <p>
-          Enter your work email and we’ll send a secure sign-in link. No password
-          needed.
-        </p>
+        <h1 id="login-title">BCP Portal</h1>
         <LoginForm callbackError={params.error ?? null} />
-        <p className="auth-footnote">
-          This is a read-only view of workers assigned to your organisation.
-        </p>
       </section>
     </main>
   );

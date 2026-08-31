@@ -124,8 +124,12 @@ a.calendar-worker-phone:hover { text-decoration: underline; }
 .auth-shell { display: grid; min-height: 100dvh; place-items: center; padding: 24px; background: radial-gradient(circle at 5% 8%, rgb(232 130 54 / 13%), transparent 30%), radial-gradient(circle at 95% 92%, rgb(22 116 95 / 13%), transparent 34%), var(--paper); }
 .auth-card, .notice-card { width: min(100%, 475px); padding: clamp(28px, 5vw, 48px); background: rgb(255 255 255 / 94%); border: 1px solid rgb(255 255 255 / 75%); border-radius: 26px; box-shadow: var(--shadow); }
 .auth-card .brand, .notice-card .brand { margin-bottom: 46px; }
+.auth-card { text-align: center; }
+.auth-card .brand { display: flex; justify-content: center; margin-bottom: 28px; }
+.auth-card .brand-logo-frame { width: 230px; height: 130px; }
 .auth-card h1, .notice-card h1 { font-size: clamp(2rem, 8vw, 2.65rem); }
-.auth-form { display: grid; gap: 16px; margin-top: 30px; }
+.auth-card h1 { margin: 0; }
+.auth-form { display: grid; gap: 16px; margin-top: 30px; text-align: left; }
 .field-label { display: grid; gap: 8px; color: var(--ink); font-size: .83rem; font-weight: 750; }
 .text-input { width: 100%; min-height: 49px; padding: 12px 14px; color: var(--ink); background: white; border: 1px solid #c8d7cf; border-radius: 11px; }
 .text-input::placeholder { color: #91a29a; }
@@ -158,6 +162,7 @@ a.calendar-worker-phone:hover { text-decoration: underline; }
   .classification-summary { align-items: flex-start; flex-direction: column; gap: 8px; margin-bottom: 19px; padding-bottom: 14px; }
   .calendar-table-wrap { display: none; }
   .mobile-schedule { display: block; }
+  .auth-card .brand-logo-frame { width: 190px; height: 108px; }
 }
 
 @media (max-width: 385px) {
