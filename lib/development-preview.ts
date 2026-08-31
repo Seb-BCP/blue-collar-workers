@@ -30,9 +30,10 @@ export function getDevelopmentPreviewWorkers(): ClientWorker[] {
       bookings: [
         fixtureBooking(
           'jordan-mitchell-week-1',
-          'Forklift',
-          [day(0), day(1), day(2), day(3), day(4)],
+          day(-4),
+          day(4),
           true,
+          [day(0), day(1), day(2), day(3), day(4)],
         ),
       ],
     },
@@ -45,9 +46,10 @@ export function getDevelopmentPreviewWorkers(): ClientWorker[] {
       bookings: [
         fixtureBooking(
           'priya-nair-week-1',
-          'Forklift',
-          [day(0), day(1), day(3), day(4)],
+          day(-3),
+          day(7),
           false,
+          [day(0), day(1), day(3), day(4)],
         ),
       ],
     },
@@ -60,10 +62,10 @@ export function getDevelopmentPreviewWorkers(): ClientWorker[] {
       bookings: [
         fixtureBooking(
           'alex-morgan-week-1',
-          'Forklift',
-          [day(1), day(2), day(3), day(4), day(5)],
+          day(-14),
           null,
-          true,
+          false,
+          [day(1), day(2), day(3), day(4), day(5)],
         ),
       ],
     },
@@ -76,9 +78,10 @@ export function getDevelopmentPreviewWorkers(): ClientWorker[] {
       bookings: [
         fixtureBooking(
           'tahlia-wood-week-1',
-          'Forklift',
-          [day(0), day(2), day(4)],
+          day(-2),
+          day(10),
           false,
+          [day(0), day(2), day(4)],
         ),
       ],
     },
@@ -91,9 +94,10 @@ export function getDevelopmentPreviewWorkers(): ClientWorker[] {
       bookings: [
         fixtureBooking(
           'samuel-oconnor-williams-week-1',
-          'Forklift',
-          [day(0), day(1), day(2), day(3), day(4)],
+          day(0),
+          day(4),
           true,
+          [day(0), day(1), day(2), day(3), day(4)],
         ),
       ],
     },
@@ -106,9 +110,10 @@ export function getDevelopmentPreviewWorkers(): ClientWorker[] {
       bookings: [
         fixtureBooking(
           'mia-clarke-week-1',
-          'HR',
-          [day(1), day(2), day(4), day(5)],
+          day(-1),
+          day(8),
           true,
+          [day(1), day(2), day(4), day(5)],
         ),
       ],
     },
@@ -121,9 +126,10 @@ export function getDevelopmentPreviewWorkers(): ClientWorker[] {
       bookings: [
         fixtureBooking(
           'daniel-hart-week-1',
-          'Labourer',
-          [day(0), day(1), day(2), day(3)],
+          day(-7),
+          day(3),
           false,
+          [day(0), day(1), day(2), day(3)],
         ),
       ],
     },
@@ -136,9 +142,10 @@ export function getDevelopmentPreviewWorkers(): ClientWorker[] {
       bookings: [
         fixtureBooking(
           'aisha-khan-week-1',
-          'Supervisor',
+          day(-5),
+          null,
+          false,
           [day(2), day(3), day(4), day(6)],
-          true,
         ),
       ],
     },
@@ -147,18 +154,16 @@ export function getDevelopmentPreviewWorkers(): ClientWorker[] {
 
 function fixtureBooking(
   key: string,
-  classification: string,
+  startDate: string | null,
+  endDate: string | null,
+  endDateConfirmed: boolean,
   assignedDates: string[],
-  endDateConfirmed: boolean | null,
-  ongoing = false,
 ): ClientWorkerBooking {
   return {
     key,
-    classification,
-    startDate: assignedDates[0] ?? null,
-    endDate: ongoing ? null : (assignedDates[assignedDates.length - 1] ?? null),
+    startDate,
+    endDate,
     endDateConfirmed,
-    ongoing,
     assignedDates,
   };
 }

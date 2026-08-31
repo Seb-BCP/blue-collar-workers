@@ -55,23 +55,24 @@ client-provided parameters. The RPC derives client scope from the signed-in
 user's protected `app_metadata.client_id`. The browser never reads internal
 workforce tables.
 
-Production currently receives only the fields emitted by the protected
-get_client_worker_calendar RPC. The interface is prepared to display an
-authorised classification, plus the following worker-booking fields when that
-same RPC is extended to return them:
+The protected get_client_worker_calendar RPC returns worker name/contact/photo
+fields plus:
 
-- booking_key (opaque response key only)
-- assignment_start_date
-- assignment_end_date
-- end_date_confirmed
-- ongoing_assignment
+- work_date from assignment_days, used only for individual weekly calendar days
+- start_date from assignments
+- end_date from assignments
+- end_date_confirmed from assignments
 
-The portal does not query assignments directly and must not infer booking days
-from a start/end date. Keep the RPC client-scoped from protected
-app_metadata.client_id, return no raw IDs or audit fields, and preserve its
-existing assignment eligibility rules. Worker photos use short-lived URLs
-created server-side from the authenticated user's session; the application
-contains no service-role key.
+The portal does not query assignments directly and never derives booking days
+or assignment dates from orders. A null work_date is retained for the Worker
+bookings tab but creates no calendar day. A null end_date is displayed as
+Ongoing; otherwise the portal displays End date confirmed only when
+end_date_confirmed is true.
+
+Keep the RPC client-scoped from protected app_metadata.client_id, return no raw
+IDs or audit fields, and preserve its existing assignment eligibility rules.
+Worker photos use short-lived URLs created server-side from the authenticated
+user's session; the application contains no service-role key.
 
 Before launch, verify that the RPC is executable by `authenticated` but not
 `anon`, direct table access is blocked by RLS, and Storage RLS allows each client

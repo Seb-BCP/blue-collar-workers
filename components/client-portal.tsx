@@ -140,7 +140,7 @@ export function ClientPortal({
             {activeTab === 'schedule' ? (
               <WeeklySchedule {...scheduleProps} />
             ) : (
-              <WorkerBookings {...scheduleProps} />
+              <WorkerBookings workers={workers} />
             )}
           </div>
         )}
@@ -426,7 +426,7 @@ function WorkerScheduleIdentity({
       <div className="calendar-worker-copy">
         <span className="calendar-worker-name">{worker.name}</span>
         <WorkerClassification
-          classification={booking?.classification ?? worker.classification}
+          classification={worker.classification}
           className="calendar-worker-classification"
         />
         <WorkerBookingSummary booking={booking} />
@@ -441,16 +441,14 @@ function WorkerBookingSummary({ booking }: { booking: ClientWorkerBooking | null
 
   const parts = [
     booking.startDate ? 'Start ' + formatScheduleDate(booking.startDate) : null,
-    booking.ongoing === true
+    booking.endDate === null
       ? 'Ongoing'
-      : booking.endDate
-        ? 'End ' + formatScheduleDate(booking.endDate)
-        : null,
-    booking.endDateConfirmed === true
-      ? 'End confirmed'
-      : booking.endDateConfirmed === false
-        ? 'End pending'
-        : null,
+      : 'End ' + formatScheduleDate(booking.endDate),
+    booking.endDate === null
+      ? null
+      : booking.endDateConfirmed === true
+        ? 'End date confirmed'
+        : 'End date not confirmed',
   ].filter((value): value is string => Boolean(value));
 
   if (parts.length === 0) return null;
@@ -458,16 +456,8 @@ function WorkerBookingSummary({ booking }: { booking: ClientWorkerBooking | null
   return <span className="calendar-worker-booking">{parts.join(' · ')}</span>;
 }
 
-function WorkerBookings({
-  workers,
-  days,
-  weekRange,
-  isCurrentWeek,
-  onPreviousWeek,
-  onNextWeek,
-  onCurrentWeek,
-}: WeeklyScheduleProps) {
-  const rows = workerBookingsForWeek(workers, days);
+function WorkerBookings({ workers }: Pick<WeeklyScheduleProps, 'workers'>) {
+  const rows = allWorkerBookings(workers);
 
   return (
     <section
@@ -476,18 +466,6 @@ function WorkerBookings({
       id="portal-panel-bookings"
       role="tabpanel"
     >
-      <div className="booking-toolbar">
-        <p className="week-label" aria-live="polite">
-          {weekRange}
-        </p>
-        <WeekControls
-          isCurrentWeek={isCurrentWeek}
-          onCurrentWeek={onCurrentWeek}
-          onNextWeek={onNextWeek}
-          onPreviousWeek={onPreviousWeek}
-        />
-      </div>
-
       {rows.length === 0 ? (
         <EmptyBookings />
       ) : (
@@ -502,7 +480,7 @@ function WorkerBookings({
                 <div className="booking-worker-copy">
                   <strong className="worker-name">{worker.name}</strong>
                   <WorkerClassification
-                    classification={booking.classification ?? worker.classification}
+                    classification={worker.classification}
                     className="worker-classification"
                   />
                   <WorkerContact worker={worker} className="worker-phone" />
@@ -583,8 +561,8 @@ function EmptyBookings() {
       <div className="empty-state-icon" aria-hidden="true">
         —
       </div>
-      <h2 id="empty-bookings-title">No worker bookings in this week</h2>
-      <p>Select another week to view its scheduled worker bookings.</p>
+      <h2 id="empty-bookings-title">No active worker bookings</h2>
+      <p>Current worker bookings will appear here when they are available.</p>
     </section>
   );
 }
@@ -597,7 +575,7 @@ function weeklyClassificationCounts(
   const counts = new Map<string, number>();
 
   for (const worker of workers) {
-    const classification = workerClassificationForWeek(worker, weekDates)?.trim();
+    const classification = worker.classification?.trim();
     const isBookedThisWeek = worker.assignedDates.some((date) => weekDates.has(date));
     if (!classification || !isBookedThisWeek) continue;
 
@@ -613,15 +591,9 @@ function weeklyClassificationCounts(
     );
 }
 
-function workerBookingsForWeek(
-  workers: ClientWorker[],
-  days: Date[],
-): WorkerBookingRow[] {
-  const weekDates = new Set(days.map(dateKey));
-
+function allWorkerBookings(workers: ClientWorker[]): WorkerBookingRow[] {
   return workers.flatMap((worker) =>
     workerBookings(worker)
-      .filter((booking) => booking.assignedDates.some((date) => weekDates.has(date)))
       .map((booking) => ({ worker, booking })),
   );
 }
@@ -638,57 +610,31 @@ function bookingForWeek(
   );
 }
 
-function workerClassificationForWeek(
-  worker: ClientWorker,
-  weekDates: Set<string>,
-): string | null | undefined {
-  return (
-    workerBookings(worker).find((booking) =>
-      booking.assignedDates.some((date) => weekDates.has(date)),
-    )?.classification ?? worker.classification
-  );
-}
-
 function workerBookings(worker: ClientWorker): ClientWorkerBooking[] {
-  if (worker.bookings && worker.bookings.length > 0) return worker.bookings;
-
-  // Existing RPC responses that have not yet gained booking fields remain
-  // compatible with the new tab, but date/status cells stay "Not supplied".
-  return [
-    {
-      key: 'worker-fallback',
-      classification: worker.classification ?? null,
-      startDate: null,
-      endDate: null,
-      endDateConfirmed: null,
-      ongoing: null,
-      assignedDates: worker.assignedDates,
-    },
-  ];
+  return worker.bookings;
 }
 
 function bookingEndDateLabel(booking: ClientWorkerBooking): string {
-  if (booking.ongoing === true) return 'Ongoing';
-  return booking.endDate ? formatBookingDate(booking.endDate) : 'Not supplied';
+  return booking.endDate === null ? 'Ongoing' : formatBookingDate(booking.endDate);
 }
 
 function bookingStatusLabel(booking: ClientWorkerBooking): string {
-  if (booking.ongoing === true) return 'Not applicable';
-  if (booking.endDateConfirmed === true) return 'Confirmed';
-  if (booking.endDateConfirmed === false) return 'Pending confirmation';
-  return 'Not supplied';
+  if (booking.endDate === null) return 'Ongoing';
+  return booking.endDateConfirmed === true
+    ? 'End date confirmed'
+    : 'End date not confirmed';
 }
 
 function bookingStatusClass(booking: ClientWorkerBooking): string {
+  if (booking.endDate === null) {
+    return 'booking-status booking-status--ongoing';
+  }
+
   if (booking.endDateConfirmed === true) {
     return 'booking-status booking-status--confirmed';
   }
 
-  if (booking.endDateConfirmed === false) {
-    return 'booking-status booking-status--pending';
-  }
-
-  return 'booking-status';
+  return 'booking-status booking-status--pending';
 }
 
 function mobileDayClassName(assigned: boolean, isToday: boolean): string {

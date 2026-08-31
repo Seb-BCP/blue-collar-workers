@@ -1,36 +1,30 @@
 /**
  * The full and only client-facing contract of
- * public.get_client_worker_calendar(). Booking fields remain optional until
- * that protected RPC is extended to return them.
+ * public.get_client_worker_calendar(). Assignment dates come only from
+ * public.assignments; work dates come only from public.assignment_days.
  */
 export type ClientWorkerCalendarRow = {
   worker_name: string;
-  classification?: string | null;
   phone: string | null;
   photo_bucket: string | null;
   photo_path: string | null;
   photo_mime_type: string | null;
   photo_updated_at: string | null;
-  work_date: string;
-  /** Opaque only; never use this value in a browser-initiated lookup. */
-  booking_key?: string | null;
-  assignment_start_date?: string | null;
-  assignment_end_date?: string | null;
-  end_date_confirmed?: boolean | null;
-  ongoing_assignment?: boolean | null;
+  work_date: string | null;
+  start_date: string | null;
+  end_date: string | null;
+  end_date_confirmed: boolean;
 };
 
 export type ClientWorkerBooking = {
   /**
-   * An opaque response key or a local fallback grouping key. It is used only
-   * to preserve distinct bookings in the rendered response.
+   * A local response grouping key. It is never sent back to Supabase or
+   * displayed to a client.
    */
   key: string;
-  classification: string | null;
   startDate: string | null;
   endDate: string | null;
-  endDateConfirmed: boolean | null;
-  ongoing: boolean | null;
+  endDateConfirmed: boolean;
   assignedDates: string[];
 };
 
@@ -42,7 +36,6 @@ type WorkerPhotoSource = {
 
 export type ClientWorkerRecord = {
   name: string;
-  classification: string | null;
   phone: string | null;
   photo: WorkerPhotoSource | null;
   assignedDates: string[];
@@ -55,7 +48,7 @@ export type ClientWorker = {
   photoUrl: string | null;
   assignedDates: string[];
   classification?: string | null;
-  bookings?: ClientWorkerBooking[];
+  bookings: ClientWorkerBooking[];
 };
 
 type WorkerBookingAccumulator = Omit<ClientWorkerBooking, 'assignedDates'> & {
@@ -81,21 +74,18 @@ export function groupClientWorkers(
   const workers = new Map<string, WorkerAccumulator>();
 
   for (const row of rows) {
-    const workDate = dateKey(row.work_date);
-    if (!workDate) continue;
+    const workDate = row.work_date ? dateKey(row.work_date) : null;
 
     const photo = photoSource(row);
-    const classification = normaliseOptionalText(row.classification);
     // The RPC intentionally exposes no worker identifier. This ephemeral key
     // is derived only from allowed fields and is never sent back to Supabase.
     const key = workerGroupingKey(row.worker_name, row.phone, photo);
     const booking = bookingFromRow(row);
-    const bookingKey = bookingGroupingKey(row, booking);
+    const bookingKey = bookingGroupingKey(booking);
     const existing = workers.get(key);
 
     if (existing) {
-      existing.assignedDates.add(workDate);
-      existing.classification ??= classification;
+      if (workDate) existing.assignedDates.add(workDate);
       addBooking(existing.bookings, bookingKey, booking, workDate);
       continue;
     }
@@ -104,10 +94,9 @@ export function groupClientWorkers(
     addBooking(bookings, bookingKey, booking, workDate);
     workers.set(key, {
       name: row.worker_name.trim(),
-      classification,
       phone: normaliseNullableText(row.phone),
       photo,
-      assignedDates: new Set([workDate]),
+      assignedDates: new Set(workDate ? [workDate] : []),
       bookings,
     });
   }
@@ -136,7 +125,6 @@ export function withSignedPhotoUrls(
 ): ClientWorker[] {
   return workers.map((worker) => ({
     name: worker.name,
-    classification: worker.classification,
     phone: worker.phone,
     photoUrl: worker.photo
       ? (photoUrls.get(photoLocationKey(worker.photo)) ?? null)
@@ -165,24 +153,21 @@ function addBooking(
   bookings: Map<string, WorkerBookingAccumulator>,
   key: string,
   booking: Omit<ClientWorkerBooking, 'key' | 'assignedDates'>,
-  workDate: string,
+  workDate: string | null,
 ) {
   const existing = bookings.get(key);
 
   if (existing) {
-    existing.assignedDates.add(workDate);
-    existing.classification ??= booking.classification;
+    if (workDate) existing.assignedDates.add(workDate);
     existing.startDate ??= booking.startDate;
     existing.endDate ??= booking.endDate;
-    existing.endDateConfirmed ??= booking.endDateConfirmed;
-    existing.ongoing ??= booking.ongoing;
     return;
   }
 
   bookings.set(key, {
     key,
     ...booking,
-    assignedDates: new Set([workDate]),
+    assignedDates: new Set(workDate ? [workDate] : []),
   });
 }
 
@@ -195,33 +180,20 @@ function isClientWorkerCalendarRow(
   return (
     typeof row.worker_name === 'string' &&
     row.worker_name.trim().length > 0 &&
-    isOptionalNullableString(row.classification) &&
     isNullableString(row.phone) &&
     isNullableString(row.photo_bucket) &&
     isNullableString(row.photo_path) &&
     isNullableString(row.photo_mime_type) &&
     isNullableString(row.photo_updated_at) &&
-    isOptionalNullableString(row.booking_key) &&
-    isOptionalNullableString(row.assignment_start_date) &&
-    isOptionalNullableString(row.assignment_end_date) &&
-    isOptionalNullableBoolean(row.end_date_confirmed) &&
-    isOptionalNullableBoolean(row.ongoing_assignment) &&
-    typeof row.work_date === 'string'
+    isNullableString(row.work_date) &&
+    isNullableString(row.start_date) &&
+    isNullableString(row.end_date) &&
+    typeof row.end_date_confirmed === 'boolean'
   );
 }
 
 function isNullableString(value: unknown): value is string | null {
   return typeof value === 'string' || value === null;
-}
-
-function isOptionalNullableString(value: unknown): value is string | null | undefined {
-  return value === undefined || isNullableString(value);
-}
-
-function isOptionalNullableBoolean(
-  value: unknown,
-): value is boolean | null | undefined {
-  return value === undefined || typeof value === 'boolean' || value === null;
 }
 
 function photoSource(row: ClientWorkerCalendarRow): WorkerPhotoSource | null {
@@ -240,34 +212,22 @@ function bookingFromRow(
   row: ClientWorkerCalendarRow,
 ): Omit<ClientWorkerBooking, 'key' | 'assignedDates'> {
   return {
-    classification: normaliseOptionalText(row.classification),
-    startDate: optionalDateKey(row.assignment_start_date),
-    endDate: optionalDateKey(row.assignment_end_date),
-    endDateConfirmed: normaliseOptionalBoolean(row.end_date_confirmed),
-    ongoing: normaliseOptionalBoolean(row.ongoing_assignment),
+    startDate: optionalDateKey(row.start_date),
+    endDate: optionalDateKey(row.end_date),
+    endDateConfirmed: row.end_date_confirmed,
   };
 }
 
 function bookingGroupingKey(
-  row: ClientWorkerCalendarRow,
   booking: Omit<ClientWorkerBooking, 'key' | 'assignedDates'>,
 ): string {
-  const explicitKey = normaliseOptionalText(row.booking_key);
-  if (explicitKey) return 'booking:' + explicitKey;
-
-  // This keeps today's RPC compatible: without booking fields, all of a
-  // worker's authorised dates form one local fallback booking.
+  // The RPC deliberately exposes no assignment identifier. These authorised
+  // assignment fields create a local grouping only; they are not a lookup key.
   return [
-    'fallback',
-    booking.classification ?? '',
+    'assignment',
     booking.startDate ?? '',
     booking.endDate ?? '',
-    booking.endDateConfirmed === true
-      ? 'confirmed'
-      : booking.endDateConfirmed === false
-        ? 'pending'
-        : '',
-    booking.ongoing === true ? 'ongoing' : booking.ongoing === false ? 'closed' : '',
+    booking.endDateConfirmed ? 'confirmed' : 'not-confirmed',
   ].join('\u0000');
 }
 
@@ -289,17 +249,7 @@ function normaliseNullableText(value: string | null): string | null {
   return normalised || null;
 }
 
-function normaliseOptionalText(value: string | null | undefined): string | null {
-  return typeof value === 'string' ? normaliseNullableText(value) : null;
-}
-
-function normaliseOptionalBoolean(
-  value: boolean | null | undefined,
-): boolean | null {
-  return typeof value === 'boolean' ? value : null;
-}
-
-function optionalDateKey(value: string | null | undefined): string | null {
+function optionalDateKey(value: string | null): string | null {
   return typeof value === 'string' ? dateKey(value) : null;
 }
 
