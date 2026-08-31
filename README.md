@@ -35,8 +35,9 @@ client with protected `app_metadata` as described below.
 The portal authenticates existing email-and-password accounts and derives the
 client scope from protected `app_metadata.client_id`. Use
 [supabase/assign-client-access.sql](supabase/assign-client-access.sql) after
-creating each user. Set the target client's real UUID in the script, then have
-the user sign out and back in so their session receives the new claim.
+creating each user. Set the account email and client name in the script; it
+resolves the active client's UUID server-side. Then have the user sign out and
+back in so their session receives the new claim.
 
 ## One-user admin preview
 
