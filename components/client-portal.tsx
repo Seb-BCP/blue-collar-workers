@@ -289,7 +289,6 @@ function ClassificationSummary({ counts }: { counts: ClassificationCount[] }) {
 
   return (
     <div className="classification-summary" aria-label="Weekly schedule by classification">
-      <span className="classification-summary-label">By classification</span>
       <ul className="classification-list">
         {counts.map(({ classification, count }) => (
           <li className="classification-chip" key={classification}>

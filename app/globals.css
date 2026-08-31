@@ -94,7 +94,6 @@ button:focus-visible, input:focus-visible { outline: 3px solid rgb(57 119 223 / 
 .week-label { margin: 0; color: var(--ink); font-size: clamp(1.08rem, 2vw, 1.32rem); font-weight: 720; letter-spacing: -.03em; }
 .week-controls { display: flex; flex: 0 0 auto; align-items: center; gap: 8px; }
 .classification-summary { display: flex; align-items: center; gap: 13px; margin: 0; padding: 14px clamp(18px, 2.2vw, 28px); background: #fbfdff; border-bottom: 1px solid #e6edf7; }
-.classification-summary-label { flex: 0 0 auto; color: var(--muted); font-size: .72rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
 .classification-list { display: flex; flex-wrap: wrap; gap: 7px; margin: 0; padding: 0; list-style: none; }
 .classification-chip { padding: 6px 9px; color: var(--blue-dark); background: var(--blue-pale); border: 1px solid var(--blue-line); border-radius: 999px; font-size: .79rem; font-weight: 670; white-space: nowrap; }
 .classification-chip strong { font-weight: 850; }
