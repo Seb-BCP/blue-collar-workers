@@ -30,7 +30,15 @@ export async function signAuthorisedWorkerPhotos(
         .from(photo.bucket)
         .createSignedUrl(photo.path, SIGNED_URL_TTL_SECONDS);
 
-      return !error && data?.signedUrl ? ([key, data.signedUrl] as const) : null;
+      if (error || !data?.signedUrl) {
+        console.warn('Unable to sign an authorised worker photo.', {
+          bucket: photo.bucket,
+          reason: error?.message ?? 'No signed URL returned',
+        });
+        return null;
+      }
+
+      return [key, data.signedUrl] as const;
     }),
   );
 

@@ -143,12 +143,11 @@ export function photoLocationKey(photo: WorkerPhotoSource): string {
 export function canDisplayPhoto(
   photo: WorkerPhotoSource | null,
 ): photo is WorkerPhotoSource {
-  return Boolean(
-    photo &&
-      photo.bucket &&
-      photo.path &&
-      (!photo.mimeType || photo.mimeType.toLowerCase().startsWith('image/')),
-  );
+  // Legacy worker records can have a missing or generic MIME label even when
+  // the object itself is a valid image. The authorised bucket/path is the
+  // access boundary; the browser still safely falls back if the object cannot
+  // render as an image.
+  return Boolean(photo && photo.bucket && photo.path);
 }
 
 function addBooking(
