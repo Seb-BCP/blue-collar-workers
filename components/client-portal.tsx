@@ -38,12 +38,14 @@ const portalTabs: ReadonlyArray<{ id: PortalTab; label: string }> = [
 ];
 
 const shortWeekday = new Intl.DateTimeFormat('en-AU', { weekday: 'short' });
+const longWeekday = new Intl.DateTimeFormat('en-AU', { weekday: 'long' });
 const dayNumber = new Intl.DateTimeFormat('en-AU', { day: 'numeric' });
 const calendarDate = new Intl.DateTimeFormat('en-AU', {
   day: 'numeric',
   month: 'short',
 });
 const bookingDate = new Intl.DateTimeFormat('en-AU', {
+  weekday: 'short',
   day: 'numeric',
   month: 'short',
   year: 'numeric',
@@ -73,10 +75,6 @@ export function ClientPortal({
     () => Array.from({ length: 7 }, (_, index) => addDays(weekStart, index)),
     [weekStart],
   );
-  const classificationCounts = useMemo(
-    () => weeklyClassificationCounts(workers, days),
-    [workers, days],
-  );
   const isCurrentWeek = dateKey(weekStart) === dateKey(currentWeekStart);
   const weekRange = formatWeekRange(days[0], days[6]);
   const title = titleOverride ?? clientName + ' – BCP Workers';
@@ -89,7 +87,6 @@ export function ClientPortal({
     weekRange,
     isCurrentWeek,
     todayKey: initialBusinessDate,
-    classificationCounts,
     onPreviousWeek: () => setWeekStart((week) => addDays(week, -7)),
     onNextWeek: () => setWeekStart((week) => addDays(week, 7)),
     onCurrentWeek: () => setWeekStart(currentWeekStart),
@@ -215,7 +212,6 @@ type WeeklyScheduleProps = {
   weekRange: string;
   isCurrentWeek: boolean;
   todayKey: string;
-  classificationCounts: ClassificationCount[];
   onPreviousWeek: () => void;
   onNextWeek: () => void;
   onCurrentWeek: () => void;
@@ -227,7 +223,6 @@ function WeeklySchedule({
   weekRange,
   isCurrentWeek,
   todayKey,
-  classificationCounts,
   onPreviousWeek,
   onNextWeek,
   onCurrentWeek,
@@ -251,8 +246,6 @@ function WeeklySchedule({
             onPreviousWeek={onPreviousWeek}
           />
         </div>
-
-        <ClassificationSummary counts={classificationCounts} />
         <DesktopCalendar workers={workers} days={days} todayKey={todayKey} />
         <MobileCalendar workers={workers} days={days} todayKey={todayKey} />
       </div>
@@ -275,32 +268,18 @@ function WeekControls({
         Previous
       </button>
       <button
-        className="button button--calendar"
+        className={
+          'button button--calendar' + (isCurrentWeek ? '' : ' button--return-week')
+        }
         type="button"
         onClick={onCurrentWeek}
         disabled={isCurrentWeek}
       >
-        This week
+        {isCurrentWeek ? 'This week' : 'Return to this week'}
       </button>
       <button className="button button--calendar" type="button" onClick={onNextWeek}>
         Next
       </button>
-    </div>
-  );
-}
-
-function ClassificationSummary({ counts }: { counts: ClassificationCount[] }) {
-  if (counts.length === 0) return null;
-
-  return (
-    <div className="classification-summary" aria-label="Weekly schedule by classification">
-      <ul className="classification-list">
-        {counts.map(({ classification, count }) => (
-          <li className="classification-chip" key={classification}>
-            <strong>{count}</strong> {classification}
-          </li>
-        ))}
-      </ul>
     </div>
   );
 }
@@ -314,15 +293,26 @@ function DesktopCalendar({
     <div className="calendar-table-wrap">
       <table className="calendar-table">
         <thead>
-          <tr>
-            <th scope="col">Worker</th>
+          <tr className="calendar-date-row">
+            <th scope="col" aria-label="Worker details" />
+            {days.map((day) => (
+              <th
+                key={dateKey(day)}
+                scope="col"
+                data-today={dateKey(day) === todayKey}
+              >
+                <span className="calendar-weekday">{longWeekday.format(day)}</span>
+                <span className="calendar-date">{calendarDate.format(day)}</span>
+              </th>
+            ))}
+          </tr>
+          <tr className="calendar-count-row">
+            <th aria-hidden="true" />
             {days.map((day) => {
               const dayCounts = dailyClassificationCounts(workers, day);
 
               return (
-                <th key={dateKey(day)} scope="col" data-today={dateKey(day) === todayKey}>
-                  {shortWeekday.format(day)}
-                  <span>{calendarDate.format(day)}</span>
+                <th key={dateKey(day)} scope="col">
                   {dayCounts.length > 0 ? (
                     <span className="calendar-day-summary">
                       {dayCounts.map(({ classification, count }) => (
@@ -616,27 +606,6 @@ function EmptyBookings() {
       <p>Current worker bookings will appear here when they are available.</p>
     </section>
   );
-}
-
-function weeklyClassificationCounts(
-  workers: ClientWorker[],
-  days: Date[],
-): ClassificationCount[] {
-  const counts = new Map<string, number>();
-
-  for (const worker of workers) {
-    for (const classification of classificationsForWeek(worker, days)) {
-      counts.set(classification, (counts.get(classification) ?? 0) + 1);
-    }
-  }
-
-  return [...counts]
-    .map(([classification, count]) => ({ classification, count }))
-    .sort(
-      (left, right) =>
-        right.count - left.count ||
-        left.classification.localeCompare(right.classification, 'en-AU'),
-    );
 }
 
 function classificationsForWeek(worker: ClientWorker, days: Date[]): string[] {
