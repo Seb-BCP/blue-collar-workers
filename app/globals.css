@@ -75,7 +75,7 @@ button:focus-visible, input:focus-visible { outline: 3px solid rgb(57 119 223 / 
 .booking-table tbody tr:last-child td { border-bottom: 0; }
 .booking-table tbody tr:hover td { background: #fafdff; }
 .booking-worker { display: flex; align-items: center; gap: 12px; min-width: 0; }
-.booking-worker .avatar { width: 174px; height: 174px; border-radius: 30px; font-size: 2.4rem; }
+.booking-worker .avatar { width: 148px; height: 148px; border-radius: 26px; font-size: 2.04rem; }
 .booking-worker-copy { display: grid; min-width: 0; gap: 3px; }
 .worker-name { display: block; overflow: hidden; color: var(--ink); font-size: .98rem; font-weight: 750; letter-spacing: -.02em; text-overflow: ellipsis; white-space: nowrap; }
 .worker-classification, .calendar-worker-classification { display: inline-flex; align-items: center; width: fit-content; max-width: 100%; overflow: hidden; color: var(--blue-dark); font-size: .68rem; font-weight: 760; letter-spacing: .02em; text-overflow: ellipsis; text-transform: uppercase; white-space: nowrap; }
@@ -123,7 +123,7 @@ button:focus-visible, input:focus-visible { outline: 3px solid rgb(57 119 223 / 
 .calendar-table td:first-child { padding-left: clamp(18px, 2.2vw, 28px); text-align: left; }
 .calendar-table td[data-today="true"] { background: #f2f7ff; }
 .calendar-worker { display: flex; align-items: center; gap: 10px; min-width: 0; }
-.calendar-worker .avatar { width: 156px; height: 156px; border-radius: 28px; font-size: 2.28rem; }
+.calendar-worker .avatar { width: 133px; height: 133px; border-radius: 24px; font-size: 1.94rem; }
 .calendar-worker-copy { display: grid; min-width: 0; gap: 2px; }
 .calendar-worker-name { overflow: hidden; color: var(--ink); font-size: .88rem; font-weight: 740; text-overflow: ellipsis; white-space: nowrap; }
 .calendar-worker-classification { color: var(--blue-dark); font-size: .63rem; }
@@ -184,8 +184,8 @@ a.calendar-worker-phone:hover { text-decoration: underline; }
   .booking-table th { padding: 13px 14px; }
   .booking-table td { padding: 14px; }
   .booking-table th:first-child, .booking-table td:first-child { padding-left: 17px; }
-  .booking-worker .avatar { width: 150px; height: 150px; border-radius: 27px; }
-  .calendar-worker .avatar { width: 138px; height: 138px; border-radius: 25px; }
+  .booking-worker .avatar { width: 128px; height: 128px; border-radius: 23px; }
+  .calendar-worker .avatar { width: 117px; height: 117px; border-radius: 21px; }
   .calendar-card { padding: 17px; }
   .calendar-toolbar { align-items: flex-start; flex-direction: column; gap: 14px; }
   .week-controls { width: 100%; }
