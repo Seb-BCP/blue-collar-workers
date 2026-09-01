@@ -272,7 +272,7 @@ function WeekControls({
   return (
     <div className="week-controls" aria-label="Calendar week controls">
       <button className="button button--calendar" type="button" onClick={onPreviousWeek}>
-        <span aria-hidden="true">‹</span> Previous
+        Previous
       </button>
       <button
         className="button button--calendar"
@@ -283,7 +283,7 @@ function WeekControls({
         This week
       </button>
       <button className="button button--calendar" type="button" onClick={onNextWeek}>
-        Next <span aria-hidden="true">›</span>
+        Next
       </button>
     </div>
   );
