@@ -534,11 +534,13 @@ function WorkerBookings({
                       : 'Not supplied'}
                   </td>
                   <td className="booking-date-cell">
-                    {booking.endDate !== null ? bookingEndDateLabel(booking) : null}
+                    {booking.endDate !== null && !booking.ongoingAssignment
+                      ? bookingEndDateLabel(booking)
+                      : null}
                   </td>
                   <td className="booking-confirmation-cell">
                     <div className="booking-confirmation-stack">
-                      {booking.endDate !== null ? (
+                      {booking.endDate !== null && !booking.ongoingAssignment ? (
                         <span className={bookingConfirmationClass(booking)}>
                           {bookingConfirmationLabel(booking)}
                         </span>
