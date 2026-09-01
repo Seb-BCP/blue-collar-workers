@@ -13,7 +13,6 @@ export type ClientWorkerCalendarRow = {
   photo_mime_type: string | null;
   photo_updated_at: string | null;
   work_date: string | null;
-  assignment_day_is_active: boolean | null;
   start_date: string | null;
   end_date: string | null;
   end_date_confirmed: boolean;
@@ -32,8 +31,6 @@ export type ClientWorkerBooking = {
   endDateConfirmed: boolean;
   /** Supplied directly by get_client_worker_calendar; never inferred. */
   ongoingAssignment: boolean;
-  /** Explicit inactive assignment_days rows, used to suppress weekday fallback. */
-  inactiveDates: string[];
   assignedDates: string[];
 };
 
@@ -63,12 +60,8 @@ export type ClientWorker = {
   bookings: ClientWorkerBooking[];
 };
 
-type WorkerBookingAccumulator = Omit<
-  ClientWorkerBooking,
-  'assignedDates' | 'inactiveDates'
-> & {
+type WorkerBookingAccumulator = Omit<ClientWorkerBooking, 'assignedDates'> & {
   assignedDates: Set<string>;
-  inactiveDates: Set<string>;
 };
 
 type WorkerAccumulator = Omit<ClientWorkerRecord, 'assignedDates' | 'bookings'> & {
@@ -91,9 +84,6 @@ export function groupClientWorkers(
 
   for (const row of rows) {
     const workDate = row.work_date ? dateKey(row.work_date) : null;
-    const assignmentDayIsActive = workDate
-      ? row.assignment_day_is_active
-      : null;
 
     const photo = photoSource(row);
     // The RPC intentionally exposes no worker identifier. This ephemeral key
@@ -104,34 +94,18 @@ export function groupClientWorkers(
     const existing = workers.get(key);
 
     if (existing) {
-      if (workDate && assignmentDayIsActive === true) {
-        existing.assignedDates.add(workDate);
-      }
-      addBooking(
-        existing.bookings,
-        bookingKey,
-        booking,
-        workDate,
-        assignmentDayIsActive,
-      );
+      if (workDate) existing.assignedDates.add(workDate);
+      addBooking(existing.bookings, bookingKey, booking, workDate);
       continue;
     }
 
     const bookings = new Map<string, WorkerBookingAccumulator>();
-    addBooking(
-      bookings,
-      bookingKey,
-      booking,
-      workDate,
-      assignmentDayIsActive,
-    );
+    addBooking(bookings, bookingKey, booking, workDate);
     workers.set(key, {
       name: row.worker_name.trim(),
       phone: normaliseNullableText(row.phone),
       photo,
-      assignedDates: new Set(
-        workDate && assignmentDayIsActive === true ? [workDate] : [],
-      ),
+      assignedDates: new Set(workDate ? [workDate] : []),
       bookings,
     });
   }
@@ -141,10 +115,9 @@ export function groupClientWorkers(
       ...worker,
       assignedDates: [...assignedDates].sort(),
       bookings: [...bookings.values()]
-        .map(({ assignedDates: bookingDates, inactiveDates, ...booking }) => ({
+        .map(({ assignedDates: bookingDates, ...booking }) => ({
           ...booking,
           assignedDates: [...bookingDates].sort(),
-          inactiveDates: [...inactiveDates].sort(),
         }))
         .sort(
           (left, right) =>
@@ -192,48 +165,24 @@ export function canDisplayPhoto(
 function addBooking(
   bookings: Map<string, WorkerBookingAccumulator>,
   key: string,
-  booking: Omit<ClientWorkerBooking, 'key' | 'assignedDates' | 'inactiveDates'>,
+  booking: Omit<ClientWorkerBooking, 'key' | 'assignedDates'>,
   workDate: string | null,
-  assignmentDayIsActive: boolean | null,
 ) {
   const existing = bookings.get(key);
 
   if (existing) {
-    addAssignmentDay(existing, workDate, assignmentDayIsActive);
+    if (workDate) existing.assignedDates.add(workDate);
     existing.startDate ??= booking.startDate;
     existing.endDate ??= booking.endDate;
     existing.ongoingAssignment ||= booking.ongoingAssignment;
     return;
   }
 
-  const nextBooking: WorkerBookingAccumulator = {
+  bookings.set(key, {
     key,
     ...booking,
-    assignedDates: new Set<string>(),
-    inactiveDates: new Set<string>(),
-  };
-  addAssignmentDay(nextBooking, workDate, assignmentDayIsActive);
-  bookings.set(key, nextBooking);
-}
-
-function addAssignmentDay(
-  booking: WorkerBookingAccumulator,
-  workDate: string | null,
-  isActive: boolean | null,
-) {
-  if (!workDate || isActive === null) return;
-
-  if (isActive) {
-    booking.inactiveDates.delete(workDate);
-    booking.assignedDates.add(workDate);
-    return;
-  }
-
-  // An active row wins only if corrupt duplicate rows disagree. In the normal
-  // case there is one explicit state per assignment/date.
-  if (!booking.assignedDates.has(workDate)) {
-    booking.inactiveDates.add(workDate);
-  }
+    assignedDates: new Set(workDate ? [workDate] : []),
+  });
 }
 
 function isClientWorkerCalendarRow(
@@ -252,7 +201,6 @@ function isClientWorkerCalendarRow(
     isNullableString(row.photo_mime_type) &&
     isNullableString(row.photo_updated_at) &&
     isNullableString(row.work_date) &&
-    isNullableBoolean(row.assignment_day_is_active) &&
     isNullableString(row.start_date) &&
     isNullableString(row.end_date) &&
     typeof row.end_date_confirmed === 'boolean' &&
@@ -262,10 +210,6 @@ function isClientWorkerCalendarRow(
 
 function isNullableString(value: unknown): value is string | null {
   return typeof value === 'string' || value === null;
-}
-
-function isNullableBoolean(value: unknown): value is boolean | null {
-  return typeof value === 'boolean' || value === null;
 }
 
 function photoSource(row: ClientWorkerCalendarRow): WorkerPhotoSource | null {
@@ -290,7 +234,7 @@ function photoSource(row: ClientWorkerCalendarRow): WorkerPhotoSource | null {
 
 function bookingFromRow(
   row: ClientWorkerCalendarRow,
-): Omit<ClientWorkerBooking, 'key' | 'assignedDates' | 'inactiveDates'> {
+): Omit<ClientWorkerBooking, 'key' | 'assignedDates'> {
   return {
     classification: normaliseNullableText(row.classification),
     startDate: optionalDateKey(row.start_date),
@@ -301,7 +245,7 @@ function bookingFromRow(
 }
 
 function bookingGroupingKey(
-  booking: Omit<ClientWorkerBooking, 'key' | 'assignedDates' | 'inactiveDates'>,
+  booking: Omit<ClientWorkerBooking, 'key' | 'assignedDates'>,
 ): string {
   // The RPC deliberately exposes no assignment identifier. These authorised
   // assignment fields create a local grouping only; they are not a lookup key.

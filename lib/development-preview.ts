@@ -50,8 +50,6 @@ export function getDevelopmentPreviewWorkers(): ClientWorker[] {
           false,
           'Forklift',
           [day(0), day(1), day(3), day(4)],
-          false,
-          [day(2)],
         ),
       ],
     },
@@ -169,7 +167,6 @@ function fixtureBooking(
   classification: string | null,
   assignedDates: string[],
   ongoingAssignment = false,
-  inactiveDates: string[] = [],
 ): ClientWorkerBooking {
   return {
     key,
@@ -178,7 +175,6 @@ function fixtureBooking(
     endDate,
     endDateConfirmed,
     ongoingAssignment,
-    inactiveDates,
     assignedDates,
   };
 }
