@@ -208,13 +208,21 @@ function isNullableString(value: unknown): value is string | null {
 }
 
 function photoSource(row: ClientWorkerCalendarRow): WorkerPhotoSource | null {
-  const bucket = normaliseNullableText(row.photo_bucket);
-  const path = normaliseNullableText(row.photo_path);
-  if (!bucket || !path) return null;
+  // Keep the Storage identifiers byte-for-byte identical to the RPC output.
+  // Storage object names are case- and byte-sensitive: do not trim, encode,
+  // prepend the bucket, or otherwise derive either value here.
+  if (
+    typeof row.photo_bucket !== 'string' ||
+    row.photo_bucket.length === 0 ||
+    typeof row.photo_path !== 'string' ||
+    row.photo_path.length === 0
+  ) {
+    return null;
+  }
 
   return {
-    bucket,
-    path,
+    bucket: row.photo_bucket,
+    path: row.photo_path,
     mimeType: normaliseNullableText(row.photo_mime_type),
   };
 }

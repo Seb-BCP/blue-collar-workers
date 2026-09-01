@@ -7,7 +7,7 @@ import {
   type ClientWorkerRecord,
 } from '@/lib/client-workers';
 
-const SIGNED_URL_TTL_SECONDS = 10 * 60;
+const SIGNED_URL_TTL_SECONDS = 3600;
 
 export type SignedWorkerPhotos = {
   urls: Map<string, string>;
@@ -55,6 +55,15 @@ export async function signAuthorisedWorkerPhotos(
 
   const signedPhotoResults = await Promise.all(
     [...uniquePhotos.entries()].map(async ([key, photo]) => {
+      // These are the raw photo_bucket and photo_path values returned by the
+      // authorised RPC. This log makes invisible differences (such as an
+      // unwanted slash, whitespace, or encoding) apparent byte-for-byte.
+      console.info('Worker photo signing request (raw RPC values).', {
+        bucket: storageIdentifierForLog(photo.bucket),
+        path: storageIdentifierForLog(photo.path),
+        expiresIn: SIGNED_URL_TTL_SECONDS,
+      });
+
       const { data, error } = await supabase.storage
         .from(photo.bucket)
         .createSignedUrl(photo.path, SIGNED_URL_TTL_SECONDS);
@@ -107,4 +116,15 @@ function diagnosticError(error: unknown): Record<string, unknown> | null {
       .filter((field) => source[field] !== undefined)
       .map((field) => [field, source[field]]),
   );
+}
+
+function storageIdentifierForLog(value: string) {
+  return {
+    // JSON representation preserves leading/trailing slashes and whitespace.
+    value: JSON.stringify(value),
+    codeUnitLength: value.length,
+    utf8Hex: Array.from(new TextEncoder().encode(value), (byte) =>
+      byte.toString(16).padStart(2, '0'),
+    ).join(''),
+  };
 }
