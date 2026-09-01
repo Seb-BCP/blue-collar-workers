@@ -16,7 +16,8 @@ returns table (
   work_date date,
   start_date date,
   end_date date,
-  end_date_confirmed boolean
+  end_date_confirmed boolean,
+  ongoing_assignment boolean
 )
 language plpgsql
 security definer
@@ -55,7 +56,8 @@ begin
     ad.work_date,
     a.start_date,
     a.end_date,
-    coalesce(a.end_date_confirmed, false) as end_date_confirmed
+    coalesce(a.end_date_confirmed, false) as end_date_confirmed,
+    coalesce(a.ongoing_assignment, false) as ongoing_assignment
 
   from public.orders o
 
@@ -73,6 +75,7 @@ begin
 
   left join public.assignment_days ad
     on ad.assignment_id = a.id
+    and ad.is_active = true
 
   where
     o.client_id =

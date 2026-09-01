@@ -640,12 +640,13 @@ function weeklyClassificationCounts(
 }
 
 function classificationsForWeek(worker: ClientWorker, days: Date[]): string[] {
-  const weekDates = new Set(days.map(dateKey));
   const classifications = new Set<string>();
 
   for (const booking of workerBookings(worker)) {
     const classification = clientClassificationLabel(booking.classification);
-    const isBookedThisWeek = booking.assignedDates.some((date) => weekDates.has(date));
+    const isBookedThisWeek = days.some((day) =>
+      bookingWorksOnScheduleDay(booking, dateKey(day)),
+    );
     if (classification && isBookedThisWeek) classifications.add(classification);
   }
 
@@ -666,7 +667,7 @@ function dailyClassificationCounts(
 
     for (const booking of workerBookings(worker)) {
       const classification = clientClassificationLabel(booking.classification);
-      if (classification && booking.assignedDates.includes(workDate)) {
+      if (classification && bookingWorksOnScheduleDay(booking, workDate)) {
         classifications.add(classification);
       }
     }
@@ -816,14 +817,15 @@ function scheduleTickKind(
   dayKey: string,
 ): ScheduleTickKind | null {
   const bookingsForDay = workerBookings(worker).filter((booking) =>
-    booking.assignedDates.includes(dayKey),
+    bookingWorksOnScheduleDay(booking, dayKey),
   );
 
   if (bookingsForDay.length === 0) return null;
 
   // The confirmed end day takes precedence if a worker has overlapping
-  // assignment records. The schedule still only renders days from
-  // assignment_days; start/end dates only determine tick colour.
+  // assignment records. Explicit assignment_days determine a booking day;
+  // a sparse/no-day assignment otherwise falls back only to weekdays within
+  // its assignment window.
   if (
     bookingsForDay.some(
       (booking) =>
@@ -838,6 +840,29 @@ function scheduleTickKind(
   }
 
   return 'standard';
+}
+
+function bookingWorksOnScheduleDay(
+  booking: ClientWorkerBooking,
+  dayKey: string,
+): boolean {
+  // Explicit active assignment_days rows are authoritative, including
+  // weekends. The RPC filters inactive rows at the database level.
+  if (booking.assignedDates.includes(dayKey)) return true;
+
+  // Work-Force fallback for sparse/no assignment_days: weekdays only, never
+  // Saturday or Sunday, and only inside the assignment date window. This does
+  // not use ongoing_assignment to create a continuous seven-day schedule.
+  if (!isWeekday(dayKey) || booking.startDate === null) return false;
+  if (dayKey < booking.startDate) return false;
+  if (booking.endDate !== null && dayKey > booking.endDate) return false;
+
+  return true;
+}
+
+function isWeekday(dayKey: string): boolean {
+  const dayOfWeek = localDateFromKey(dayKey).getDay();
+  return dayOfWeek >= 1 && dayOfWeek <= 5;
 }
 
 function scheduleTickClassName(kind: ScheduleTickKind | null): string {

@@ -57,7 +57,8 @@ export function getDevelopmentPreviewWorkers(): ClientWorker[] {
       name: 'Alex Morgan',
       phone: null,
       photoUrl: null,
-      assignedDates: [day(1), day(2), day(3), day(4), day(5)],
+      // No assignment_days: the schedule must use its Monday–Friday fallback.
+      assignedDates: [],
       bookings: [
         fixtureBooking(
           'alex-morgan-week-1',
@@ -65,7 +66,7 @@ export function getDevelopmentPreviewWorkers(): ClientWorker[] {
           null,
           false,
           'Forklift',
-          [day(1), day(2), day(3), day(4), day(5)],
+          [],
           true,
         ),
       ],
