@@ -28,7 +28,7 @@ type WorkerBookingRow = {
   status: WorkerBookingStatus;
 };
 
-type WorkerBookingStatus = 'upcoming' | 'working';
+type WorkerBookingStatus = 'upcoming' | 'finishing-today' | 'working';
 
 const portalTabs: ReadonlyArray<{ id: PortalTab; label: string }> = [
   { id: 'schedule', label: 'Weekly schedule' },
@@ -710,23 +710,39 @@ function workerBookingStatus(
   booking: ClientWorkerBooking,
   todayKey: string,
 ): WorkerBookingStatus {
-  return booking.startDate !== null && booking.startDate > todayKey
-    ? 'upcoming'
-    : 'working';
+  if (booking.startDate !== null && booking.startDate > todayKey) {
+    return 'upcoming';
+  }
+
+  if (
+    booking.endDate !== null &&
+    booking.endDateConfirmed === true &&
+    booking.endDate === todayKey
+  ) {
+    return 'finishing-today';
+  }
+
+  return 'working';
 }
 
 function workerBookingStatusOrder(status: WorkerBookingStatus): number {
-  return status === 'upcoming' ? 0 : 1;
+  if (status === 'upcoming') return 0;
+  if (status === 'finishing-today') return 1;
+  return 2;
 }
 
 function workerBookingStatusLabel(status: WorkerBookingStatus): string {
-  return status === 'upcoming' ? 'Upcoming' : 'Working';
+  if (status === 'upcoming') return 'Upcoming';
+  if (status === 'finishing-today') return 'Finishing today';
+  return 'Working';
 }
 
 function workerBookingStatusClass(status: WorkerBookingStatus): string {
-  return status === 'upcoming'
-    ? 'booking-status booking-status--upcoming'
-    : 'booking-status booking-status--working';
+  if (status === 'upcoming') return 'booking-status booking-status--upcoming';
+  if (status === 'finishing-today') {
+    return 'booking-status booking-status--finishing-today';
+  }
+  return 'booking-status booking-status--working';
 }
 
 function shouldShowWorkerBooking(
