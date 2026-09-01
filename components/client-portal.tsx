@@ -846,16 +846,23 @@ function bookingWorksOnScheduleDay(
   booking: ClientWorkerBooking,
   dayKey: string,
 ): boolean {
-  // Explicit active assignment_days rows are authoritative, including
-  // weekends. The RPC filters inactive rows at the database level.
+  // Only confirmed assignments create schedule ticks.
+  if (booking.assignmentStatus !== 'confirmed') return false;
+
+  // The date window applies before any explicit day override is considered.
+  if (booking.startDate === null || dayKey < booking.startDate) return false;
+  if (booking.endDate !== null && dayKey > booking.endDate) return false;
+
+  // An explicit inactive assignment_days row removes normal weekday work.
+  if (booking.inactiveDates.includes(dayKey)) return false;
+
+  // An explicit active (or nullable-is_active) row is working, including
+  // Saturday and Sunday.
   if (booking.assignedDates.includes(dayKey)) return true;
 
-  // Work-Force fallback for sparse/no assignment_days: weekdays only, never
-  // Saturday or Sunday, and only inside the assignment date window. This does
-  // not use ongoing_assignment to create a continuous seven-day schedule.
-  if (!isWeekday(dayKey) || booking.startDate === null) return false;
-  if (dayKey < booking.startDate) return false;
-  if (booking.endDate !== null && dayKey > booking.endDate) return false;
+  // No day row: Work-Force falls back to Monday–Friday only. No continuous
+  // Monday–Sunday range is inferred from dates or ongoing_assignment.
+  if (!isWeekday(dayKey)) return false;
 
   return true;
 }

@@ -59,17 +59,20 @@ The protected get_client_worker_calendar RPC returns worker name/contact/photo
 fields plus:
 
 - classification from assignments.classification_id joined to classifications.name
-- work_date from assignment_days, used only for individual weekly calendar days
+- work_date and assignment_day_is_active from assignment_days, used only for
+  individual weekly calendar days
+- assignment_status from assignments, used only for weekly schedule eligibility
 - start_date from assignments
 - end_date from assignments
 - end_date_confirmed from assignments
 - ongoing_assignment from assignments
 
 The portal does not query assignments directly and never derives booking days
-or assignment dates from orders. Active `assignment_days.work_date` rows are
-authoritative for explicit working dates, especially Saturday and Sunday. For
-sparse or absent day rows, the calendar displays only Monday–Friday within the
-assignment start/end window; it never creates weekend work from an ongoing flag
+or assignment dates from orders. The weekly schedule considers only confirmed
+assignments within their date window. An active `assignment_days` row is
+explicitly working; an inactive row is explicitly not working and suppresses
+weekday fallback for that date. Where no day row exists, the calendar falls
+back only to Monday–Friday. It never creates weekend work from an ongoing flag
 or date range. `ongoing_assignment` controls the Worker Bookings presentation,
 not the calendar's weekend logic. Worker bookings with a confirmed end date
 disappear only after that end date has passed.
@@ -80,7 +83,7 @@ The RPC must require active orders, assignments, and worker profiles. It also
 must exclude an assignment after its confirmed end date has passed in
 Australia/Perth. Use
 [supabase/update-client-worker-calendar-current-workforce.sql](supabase/update-client-worker-calendar-current-workforce.sql)
-to apply both rules without exposing an is_active field.
+to apply both rules without exposing worker-profile activity fields.
 Worker photos use short-lived URLs created server-side from the authenticated
 user's session; the application contains no service-role key.
 

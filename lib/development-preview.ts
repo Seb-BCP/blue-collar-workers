@@ -50,6 +50,8 @@ export function getDevelopmentPreviewWorkers(): ClientWorker[] {
           false,
           'Forklift',
           [day(0), day(1), day(3), day(4)],
+          false,
+          [day(2)],
         ),
       ],
     },
@@ -75,7 +77,8 @@ export function getDevelopmentPreviewWorkers(): ClientWorker[] {
       name: 'Tahlia Wood',
       phone: '0401 853 279',
       photoUrl: null,
-      assignedDates: [day(0), day(2), day(4)],
+      // Normal confirmed assignment with no day overrides: Mon–Fri fallback.
+      assignedDates: [],
       bookings: [
         fixtureBooking(
           'tahlia-wood-week-1',
@@ -83,7 +86,7 @@ export function getDevelopmentPreviewWorkers(): ClientWorker[] {
           day(10),
           false,
           'Forklift',
-          [day(0), day(2), day(4)],
+          [],
         ),
       ],
     },
@@ -167,6 +170,8 @@ function fixtureBooking(
   classification: string | null,
   assignedDates: string[],
   ongoingAssignment = false,
+  inactiveDates: string[] = [],
+  assignmentStatus: string | null = 'confirmed',
 ): ClientWorkerBooking {
   return {
     key,
@@ -175,6 +180,8 @@ function fixtureBooking(
     endDate,
     endDateConfirmed,
     ongoingAssignment,
+    assignmentStatus,
+    inactiveDates,
     assignedDates,
   };
 }
