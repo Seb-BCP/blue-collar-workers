@@ -533,13 +533,19 @@ function WorkerBookings({
                       ? formatBookingDate(booking.startDate)
                       : 'Not supplied'}
                   </td>
-                  <td className="booking-date-cell">{bookingEndDateLabel(booking)}</td>
+                  <td className="booking-date-cell">
+                    {booking.endDate !== null ? bookingEndDateLabel(booking) : null}
+                  </td>
                   <td className="booking-confirmation-cell">
                     {booking.endDate !== null ? (
                       <span className={bookingConfirmationClass(booking)}>
                         {bookingConfirmationLabel(booking)}
                       </span>
-                    ) : null}
+                    ) : (
+                      <span className="booking-status booking-status--ongoing">
+                        Ongoing
+                      </span>
+                    )}
                   </td>
                 </tr>
               ))}
@@ -773,7 +779,7 @@ function workerBookings(worker: ClientWorker): ClientWorkerBooking[] {
 }
 
 function bookingEndDateLabel(booking: ClientWorkerBooking): string {
-  return booking.endDate === null ? 'Ongoing' : formatBookingDate(booking.endDate);
+  return booking.endDate === null ? '' : formatBookingDate(booking.endDate);
 }
 
 function bookingConfirmationLabel(booking: ClientWorkerBooking): string {
