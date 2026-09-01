@@ -25,7 +25,10 @@ type PortalTab = 'schedule' | 'bookings';
 type WorkerBookingRow = {
   worker: ClientWorker;
   booking: ClientWorkerBooking;
+  status: WorkerBookingStatus;
 };
+
+type WorkerBookingStatus = 'upcoming' | 'working';
 
 const portalTabs: ReadonlyArray<{ id: PortalTab; label: string }> = [
   { id: 'schedule', label: 'Weekly schedule' },
@@ -480,13 +483,14 @@ function WorkerBookings({
             <thead>
               <tr>
                 <th scope="col">Worker</th>
+                <th scope="col">Status</th>
                 <th scope="col">Start Date</th>
                 <th scope="col">End Date (planned)</th>
                 <th scope="col">Last day confirmed</th>
               </tr>
             </thead>
             <tbody>
-              {rows.map(({ worker, booking }) => (
+              {rows.map(({ worker, booking, status }) => (
                 <tr key={workerKey(worker) + '\u0000' + booking.key}>
                   <td>
                     <div className="booking-worker">
@@ -506,6 +510,11 @@ function WorkerBookings({
                         <WorkerContact worker={worker} className="worker-phone" />
                       </div>
                     </div>
+                  </td>
+                  <td className="booking-status-cell">
+                    <span className={workerBookingStatusClass(status)}>
+                      {workerBookingStatusLabel(status)}
+                    </span>
                   </td>
                   <td className="booking-date-cell">
                     {booking.startDate
@@ -670,11 +679,54 @@ function visibleWorkerBookings(
   workers: ClientWorker[],
   todayKey: string,
 ): WorkerBookingRow[] {
-  return workers.flatMap((worker) =>
-    workerBookings(worker)
-      .filter((booking) => shouldShowWorkerBooking(booking, todayKey))
-      .map((booking) => ({ worker, booking })),
-  );
+  return workers
+    .flatMap((worker) =>
+      workerBookings(worker)
+        .filter((booking) => shouldShowWorkerBooking(booking, todayKey))
+        .map((booking) => ({
+          worker,
+          booking,
+          status: workerBookingStatus(booking, todayKey),
+        })),
+    )
+    .sort((left, right) => {
+      // Future-starting workers are deliberately shown before people already
+      // working, so clients can see upcoming starts at a glance.
+      const statusDifference = workerBookingStatusOrder(left.status) -
+        workerBookingStatusOrder(right.status);
+      if (statusDifference !== 0) return statusDifference;
+
+      return (
+        (left.booking.startDate ?? '').localeCompare(
+          right.booking.startDate ?? '',
+          'en-AU',
+        ) ||
+        left.worker.name.localeCompare(right.worker.name, 'en-AU')
+      );
+    });
+}
+
+function workerBookingStatus(
+  booking: ClientWorkerBooking,
+  todayKey: string,
+): WorkerBookingStatus {
+  return booking.startDate !== null && booking.startDate > todayKey
+    ? 'upcoming'
+    : 'working';
+}
+
+function workerBookingStatusOrder(status: WorkerBookingStatus): number {
+  return status === 'upcoming' ? 0 : 1;
+}
+
+function workerBookingStatusLabel(status: WorkerBookingStatus): string {
+  return status === 'upcoming' ? 'Upcoming' : 'Working';
+}
+
+function workerBookingStatusClass(status: WorkerBookingStatus): string {
+  return status === 'upcoming'
+    ? 'booking-status booking-status--upcoming'
+    : 'booking-status booking-status--working';
 }
 
 function shouldShowWorkerBooking(
