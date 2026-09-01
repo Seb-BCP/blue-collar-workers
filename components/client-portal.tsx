@@ -75,14 +75,20 @@ export function ClientPortal({
     () => Array.from({ length: 7 }, (_, index) => addDays(weekStart, index)),
     [weekStart],
   );
+  const scheduledWorkers = useMemo(
+    () => workers.filter((worker) => workerHasScheduledDayInWeek(worker, days)),
+    [workers, days],
+  );
   const isCurrentWeek = dateKey(weekStart) === dateKey(currentWeekStart);
   const weekRange = formatWeekRange(days[0], days[6]);
   const title = titleOverride ?? clientName + ' – BCP Workers';
   const isDevelopmentPreview = mode === 'development-preview';
   const isAdminPreview = mode === 'admin-preview';
+  const displayedWorkerCount =
+    activeTab === 'schedule' ? scheduledWorkers.length : workers.length;
 
   const scheduleProps: WeeklyScheduleProps = {
-    workers,
+    workers: scheduledWorkers,
     days,
     weekRange,
     isCurrentWeek,
@@ -125,12 +131,35 @@ export function ClientPortal({
           <div
             className="workforce-summary"
             aria-label={
-              String(workers.length) +
-              (workers.length === 1 ? ' current worker' : ' current workers')
+              String(displayedWorkerCount) +
+              (displayedWorkerCount === 1 ? ' current worker' : ' current workers')
             }
           >
-            <span className="summary-count">{workers.length}</span>
-            {workers.length === 1 ? 'current worker' : 'current workers'}
+            <div className="workforce-summary-heading">
+              <span className="summary-count">{displayedWorkerCount}</span>
+              {displayedWorkerCount === 1 ? 'current worker' : 'current workers'}
+            </div>
+            <div className="schedule-tick-key" aria-label="Weekly schedule tick meanings">
+              <span className="schedule-tick-key-item">
+                <span className="assignment-mark assignment-mark--start" aria-hidden="true">
+                  ✓
+                </span>
+                First day
+              </span>
+              <span className="schedule-tick-key-item">
+                <span className="assignment-mark" aria-hidden="true">✓</span>
+                Working
+              </span>
+              <span className="schedule-tick-key-item">
+                <span
+                  className="assignment-mark assignment-mark--confirmed-end"
+                  aria-hidden="true"
+                >
+                  ✓
+                </span>
+                Last day confirmed
+              </span>
+            </div>
           </div>
         </section>
 
@@ -653,6 +682,10 @@ function dailyClassificationCounts(
         right.count - left.count ||
         left.classification.localeCompare(right.classification, 'en-AU'),
     );
+}
+
+function workerHasScheduledDayInWeek(worker: ClientWorker, days: Date[]): boolean {
+  return days.some((day) => scheduleTickKind(worker, dateKey(day)) !== null);
 }
 
 function clientClassificationLabel(classification: string | null | undefined): string | null {

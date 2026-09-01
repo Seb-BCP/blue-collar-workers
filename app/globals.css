@@ -54,8 +54,12 @@ button:focus-visible, input:focus-visible { outline: 3px solid rgb(57 119 223 / 
 .page-heading h1, .auth-card h1, .notice-card h1 { margin: 0; color: var(--ink); font-size: clamp(2rem, 4vw, 3.15rem); font-weight: 700; letter-spacing: -.045em; line-height: 1.06; }
 .page-heading .portal-title { color: var(--blue-dark); font-size: clamp(2rem, 3.7vw, 3rem); font-weight: 640; letter-spacing: -.04em; }
 .page-heading p, .auth-card p, .notice-card p { max-width: 570px; margin: 10px 0 0; color: var(--muted); font-size: 1rem; line-height: 1.55; }
-.workforce-summary { display: flex; align-items: center; flex: 0 0 auto; gap: 11px; padding: 11px 15px; color: var(--blue-dark); background: var(--blue-pale); border: 1px solid var(--blue-line); border-radius: 14px; font-size: .86rem; font-weight: 720; }
+.workforce-summary { display: grid; flex: 0 0 auto; gap: 8px; padding: 11px 15px; color: var(--blue-dark); background: var(--blue-pale); border: 1px solid var(--blue-line); border-radius: 14px; font-size: .86rem; font-weight: 720; }
+.workforce-summary-heading { display: flex; align-items: center; gap: 11px; }
 .summary-count { display: grid; width: 28px; height: 28px; place-items: center; color: white; background: var(--blue); border-radius: 999px; box-shadow: 0 4px 10px rgb(57 119 223 / 24%); font-size: .78rem; }
+.schedule-tick-key { display: flex; flex-wrap: wrap; gap: 7px 11px; padding-top: 8px; border-top: 1px solid rgb(126 169 232 / 32%); color: var(--muted); font-size: .7rem; font-weight: 720; }
+.schedule-tick-key-item { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
+.schedule-tick-key .assignment-mark { width: 18px; height: 18px; box-shadow: none; font-size: .58rem; }
 .portal-workforce { min-width: 0; }
 .portal-tabs { display: flex; align-items: center; gap: 9px; margin-bottom: 24px; }
 .portal-tab { min-height: 42px; padding: 0 17px; color: var(--muted); background: transparent; border: 1px solid transparent; border-radius: 10px; font-size: .91rem; font-weight: 730; transition: color 160ms ease, background 160ms ease, border-color 160ms ease, box-shadow 160ms ease; }
@@ -183,7 +187,7 @@ a.calendar-worker-phone:hover { text-decoration: underline; }
   .user-context { display: none; }
   .portal-main { padding-top: 31px; }
   .page-heading { display: block; margin-bottom: 30px; }
-  .workforce-summary { display: inline-flex; margin-top: 20px; }
+  .workforce-summary { display: inline-grid; margin-top: 20px; }
   .portal-tabs { margin-bottom: 16px; overflow-x: auto; }
   .portal-tab { flex: 0 0 auto; min-height: 44px; padding-right: 13px; padding-left: 13px; font-size: .84rem; }
   .booking-table-wrap { border-radius: 16px; }
