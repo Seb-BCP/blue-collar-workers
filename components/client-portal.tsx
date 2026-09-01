@@ -30,6 +30,8 @@ type WorkerBookingRow = {
 
 type WorkerBookingStatus = 'upcoming' | 'finishing-today' | 'working';
 
+type ScheduleTickKind = 'standard' | 'start' | 'confirmed-end';
+
 const portalTabs: ReadonlyArray<{ id: PortalTab; label: string }> = [
   { id: 'schedule', label: 'Weekly schedule' },
   { id: 'bookings', label: 'Worker bookings' },
@@ -348,22 +350,27 @@ function DesktopCalendar({
                   />
                 </td>
                 {days.map((day) => {
-                  const assigned = worker.assignedDates.includes(dateKey(day));
+                  const dayKey = dateKey(day);
+                  const tickKind = scheduleTickKind(worker, dayKey);
+                  const assigned = tickKind !== null;
 
                   return (
                     <td
-                      key={dateKey(day)}
-                      data-today={dateKey(day) === todayKey}
+                      key={dayKey}
+                      data-today={dayKey === todayKey}
                       aria-label={
                         worker.name +
                         ': ' +
-                        (assigned ? 'assigned' : 'not assigned') +
+                        scheduleTickDescription(tickKind) +
                         ' on ' +
                         calendarDate.format(day)
                       }
                     >
                       {assigned ? (
-                        <span className="assignment-mark" aria-hidden="true">
+                        <span
+                          className={scheduleTickClassName(tickKind)}
+                          aria-hidden="true"
+                        >
                           ✓
                         </span>
                       ) : (
@@ -401,26 +408,31 @@ function MobileCalendar({
             />
             <div className="mobile-days" aria-label={worker.name + "'s weekly assignments"}>
               {days.map((day) => {
-                const assigned = worker.assignedDates.includes(dateKey(day));
-                const isToday = dateKey(day) === todayKey;
+                const dayKey = dateKey(day);
+                const tickKind = scheduleTickKind(worker, dayKey);
+                const assigned = tickKind !== null;
+                const isToday = dayKey === todayKey;
 
                 return (
                   <div
                     className={mobileDayClassName(assigned, isToday)}
-                    key={dateKey(day)}
+                    key={dayKey}
                     aria-label={
                       shortWeekday.format(day) +
                       ' ' +
                       calendarDate.format(day) +
                       ': ' +
-                      (assigned ? 'assigned' : 'not assigned')
+                      scheduleTickDescription(tickKind)
                     }
                   >
                     <span className="mobile-day-label">
                       {shortWeekday.format(day).slice(0, 2)}
                     </span>
                     <span className="mobile-day-number">{dayNumber.format(day)}</span>
-                    <span className="mobile-day-check" aria-hidden="true">
+                    <span
+                      className={mobileScheduleTickClassName(tickKind)}
+                      aria-hidden="true"
+                    >
                       {assigned ? '✓' : '·'}
                     </span>
                   </div>
@@ -786,6 +798,61 @@ function mobileDayClassName(assigned: boolean, isToday: boolean): string {
   ]
     .filter(Boolean)
     .join(' ');
+}
+
+function scheduleTickKind(
+  worker: ClientWorker,
+  dayKey: string,
+): ScheduleTickKind | null {
+  const bookingsForDay = workerBookings(worker).filter((booking) =>
+    booking.assignedDates.includes(dayKey),
+  );
+
+  if (bookingsForDay.length === 0) return null;
+
+  // The confirmed end day takes precedence if a worker has overlapping
+  // assignment records. The schedule still only renders days from
+  // assignment_days; start/end dates only determine tick colour.
+  if (
+    bookingsForDay.some(
+      (booking) =>
+        booking.endDateConfirmed === true && booking.endDate === dayKey,
+    )
+  ) {
+    return 'confirmed-end';
+  }
+
+  if (bookingsForDay.some((booking) => booking.startDate === dayKey)) {
+    return 'start';
+  }
+
+  return 'standard';
+}
+
+function scheduleTickClassName(kind: ScheduleTickKind | null): string {
+  return [
+    'assignment-mark',
+    kind === 'start' ? 'assignment-mark--start' : '',
+    kind === 'confirmed-end' ? 'assignment-mark--confirmed-end' : '',
+  ]
+    .filter(Boolean)
+    .join(' ');
+}
+
+function mobileScheduleTickClassName(kind: ScheduleTickKind | null): string {
+  return [
+    'mobile-day-check',
+    kind === 'start' ? 'mobile-day-check--start' : '',
+    kind === 'confirmed-end' ? 'mobile-day-check--confirmed-end' : '',
+  ]
+    .filter(Boolean)
+    .join(' ');
+}
+
+function scheduleTickDescription(kind: ScheduleTickKind | null): string {
+  if (kind === 'start') return 'assigned, first day';
+  if (kind === 'confirmed-end') return 'assigned, confirmed end date';
+  return kind === 'standard' ? 'assigned' : 'not assigned';
 }
 
 function mondayFor(date: Date): Date {

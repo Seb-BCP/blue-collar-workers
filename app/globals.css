@@ -130,6 +130,8 @@ button:focus-visible, input:focus-visible { outline: 3px solid rgb(57 119 223 / 
 .calendar-worker-phone { display: block; overflow: hidden; color: var(--blue-dark); font-size: .72rem; font-weight: 650; line-height: 1.25; text-decoration: none; text-overflow: ellipsis; white-space: nowrap; }
 a.calendar-worker-phone:hover { text-decoration: underline; }
 .assignment-mark { display: inline-grid; width: 29px; height: 29px; place-items: center; color: white; background: var(--blue); border-radius: 999px; box-shadow: 0 3px 8px rgb(57 119 223 / 22%); font-size: .83rem; font-weight: 900; }
+.assignment-mark--start { background: #27834a; box-shadow: 0 3px 8px rgb(39 131 74 / 24%); }
+.assignment-mark--confirmed-end { background: #c94852; box-shadow: 0 3px 8px rgb(201 72 82 / 24%); }
 .no-assignment { color: #c9d4e2; font-size: 1rem; }
 .mobile-schedule { display: none; }
 .mobile-schedule-worker { padding: 17px clamp(18px, 2.2vw, 28px); border-bottom: 1px solid #e7eeea; }
@@ -142,6 +144,8 @@ a.calendar-worker-phone:hover { text-decoration: underline; }
 .mobile-day-label { font-size: .61rem; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; }
 .mobile-day-number { margin-top: 3px; font-size: .84rem; font-weight: 800; }
 .mobile-day-check { margin-top: 1px; color: var(--blue); font-size: .78rem; font-weight: 900; }
+.mobile-day-check--start { color: #27834a; }
+.mobile-day-check--confirmed-end { color: #c94852; }
 
 .empty-state { padding: 40px 24px; text-align: center; background: var(--surface); border: 1px dashed var(--blue-line); border-radius: 18px; }
 .empty-state-icon { display: grid; width: 45px; height: 45px; margin: 0 auto 13px; place-items: center; color: var(--blue); background: var(--blue-pale); border-radius: 14px; font-size: 1.35rem; }
