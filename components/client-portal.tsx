@@ -542,22 +542,22 @@ function WorkerBookings({
                       </div>
                     </div>
                   </td>
-                  <td className="booking-status-cell">
+                  <td className="booking-status-cell" data-label="Status">
                     <span className={workerBookingStatusClass(status)}>
                       {workerBookingStatusLabel(status)}
                     </span>
                   </td>
-                  <td className="booking-date-cell">
+                  <td className="booking-date-cell" data-label="Start date">
                     {booking.startDate
                       ? formatBookingDate(booking.startDate)
                       : 'Not supplied'}
                   </td>
-                  <td className="booking-date-cell">
+                  <td className="booking-date-cell" data-label="End date (planned)">
                     {booking.endDate !== null && !booking.ongoingAssignment
                       ? bookingEndDateLabel(booking)
                       : null}
                   </td>
-                  <td className="booking-confirmation-cell">
+                  <td className="booking-confirmation-cell" data-label="Last day confirmed">
                     <div className="booking-confirmation-stack">
                       {booking.endDate !== null && !booking.ongoingAssignment ? (
                         <span className={bookingConfirmationClass(booking)}>
