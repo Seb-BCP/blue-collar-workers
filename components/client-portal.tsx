@@ -79,13 +79,16 @@ export function ClientPortal({
     () => workers.filter((worker) => workerHasScheduledDayInWeek(worker, days)),
     [workers, days],
   );
+  const weeklyClassificationCounts = useMemo(
+    () => workerClassificationCountsForWeek(scheduledWorkers, days),
+    [scheduledWorkers, days],
+  );
   const isCurrentWeek = dateKey(weekStart) === dateKey(currentWeekStart);
   const weekRange = formatWeekRange(days[0], days[6]);
   const title = titleOverride ?? clientName + ' – BCP Workers';
   const isDevelopmentPreview = mode === 'development-preview';
   const isAdminPreview = mode === 'admin-preview';
-  const displayedWorkerCount =
-    activeTab === 'schedule' ? scheduledWorkers.length : workers.length;
+  const displayedWorkerCount = scheduledWorkers.length;
 
   const scheduleProps: WeeklyScheduleProps = {
     workers: scheduledWorkers,
@@ -139,6 +142,7 @@ export function ClientPortal({
               <span className="summary-count">{displayedWorkerCount}</span>
               {displayedWorkerCount === 1 ? 'current worker' : 'current workers'}
             </div>
+            <MobileWorkforceClassifications counts={weeklyClassificationCounts} />
             <div className="schedule-tick-key" aria-label="Weekly schedule tick meanings">
               <span className="schedule-tick-key-item">
                 <span className="assignment-mark assignment-mark--start" aria-hidden="true">
@@ -177,6 +181,24 @@ export function ClientPortal({
         )}
       </main>
     </div>
+  );
+}
+
+function MobileWorkforceClassifications({
+  counts,
+}: {
+  counts: ClassificationCount[];
+}) {
+  if (counts.length === 0) return null;
+
+  return (
+    <ul className="mobile-workforce-classifications" aria-label="Workers by classification">
+      {counts.map(({ classification, count }) => (
+        <li key={classification}>
+          {dailyClassificationLabel(classification, count)}
+        </li>
+      ))}
+    </ul>
   );
 }
 
@@ -416,6 +438,35 @@ function MobileCalendar({
 }: Pick<WeeklyScheduleProps, 'workers' | 'days' | 'todayKey'>) {
   return (
     <div className="mobile-schedule">
+      <section className="mobile-week-coverage" aria-label="Weekly worker coverage">
+        <p className="mobile-week-coverage-title">Week coverage</p>
+        <ol className="mobile-week-day-list">
+          {days.map((day) => {
+            const dayCounts = dailyClassificationCounts(workers, day);
+
+            return (
+              <li className="mobile-week-day" key={dateKey(day)}>
+                <div className="mobile-week-day-date">
+                  <strong>{shortWeekday.format(day)}</strong>
+                  <span>{calendarDate.format(day)}</span>
+                </div>
+                {dayCounts.length > 0 ? (
+                  <div className="mobile-week-day-counts">
+                    {dayCounts.map(({ classification, count }) => (
+                      <span key={classification}>
+                        {dailyClassificationLabel(classification, count)}
+                      </span>
+                    ))}
+                  </div>
+                ) : (
+                  <span className="mobile-week-day-empty">No workers</span>
+                )}
+              </li>
+            );
+          })}
+        </ol>
+      </section>
+      <h2 className="mobile-worker-details-title">Worker details</h2>
       {workers.map((worker) => {
         const classifications = classificationsForWeek(worker, days);
 
@@ -651,6 +702,27 @@ function classificationsForWeek(worker: ClientWorker, days: Date[]): string[] {
   return [...classifications].sort((left, right) =>
     left.localeCompare(right, 'en-AU'),
   );
+}
+
+function workerClassificationCountsForWeek(
+  workers: ClientWorker[],
+  days: Date[],
+): ClassificationCount[] {
+  const counts = new Map<string, number>();
+
+  for (const worker of workers) {
+    for (const classification of classificationsForWeek(worker, days)) {
+      counts.set(classification, (counts.get(classification) ?? 0) + 1);
+    }
+  }
+
+  return [...counts]
+    .map(([classification, count]) => ({ classification, count }))
+    .sort(
+      (left, right) =>
+        right.count - left.count ||
+        left.classification.localeCompare(right.classification, 'en-AU'),
+    );
 }
 
 function dailyClassificationCounts(

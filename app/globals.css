@@ -60,6 +60,7 @@ button:focus-visible, input:focus-visible { outline: 3px solid rgb(57 119 223 / 
 .schedule-tick-key { display: flex; flex-wrap: wrap; gap: 7px 11px; padding-top: 8px; border-top: 1px solid rgb(126 169 232 / 32%); color: var(--muted); font-size: .7rem; font-weight: 720; }
 .schedule-tick-key-item { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
 .schedule-tick-key .assignment-mark { width: 18px; height: 18px; box-shadow: none; font-size: .58rem; }
+.mobile-workforce-classifications, .mobile-week-coverage, .mobile-worker-details-title { display: none; }
 .portal-workforce { min-width: 0; }
 .portal-tabs { display: flex; align-items: center; gap: 9px; margin-bottom: 24px; }
 .portal-tab { min-height: 42px; padding: 0 17px; color: var(--muted); background: transparent; border: 1px solid transparent; border-radius: 10px; font-size: .91rem; font-weight: 730; transition: color 160ms ease, background 160ms ease, border-color 160ms ease, box-shadow 160ms ease; }
@@ -187,21 +188,24 @@ a.calendar-worker-phone:hover { text-decoration: underline; }
   .user-context { display: none; }
   .portal-main { padding: 25px 16px 48px; }
   .page-heading { display: block; margin-bottom: 30px; }
-  .workforce-summary { display: inline-grid; margin-top: 20px; }
+  .workforce-summary { display: inline-grid; width: 100%; margin-top: 20px; }
+  .mobile-workforce-classifications { display: flex; flex-wrap: wrap; gap: 5px 10px; margin: 0; padding: 0; color: var(--blue-dark); font-size: .78rem; font-weight: 760; list-style: none; }
+  .mobile-workforce-classifications li { white-space: nowrap; }
+  .mobile-workforce-classifications li + li::before { margin-right: 10px; color: #91add7; content: '•'; }
   .portal-tabs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-bottom: 16px; }
   .portal-tab { width: 100%; min-height: 44px; padding-right: 9px; padding-left: 9px; font-size: .8rem; white-space: nowrap; }
   .booking-table-wrap { overflow: visible; background: transparent; border: 0; border-radius: 0; box-shadow: none; }
   .booking-table, .booking-table tbody { display: block; min-width: 0; }
   .booking-table thead { display: none; }
   .booking-table tbody { display: grid; gap: 12px; }
-  .booking-table tr { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); overflow: hidden; background: linear-gradient(145deg, #ffffff, #fbfdff); border: 1px solid var(--line); border-radius: 16px; box-shadow: 0 8px 22px rgb(31 67 118 / 5%); }
-  .booking-table td { display: grid; align-content: start; min-width: 0; gap: 5px; padding: 12px 13px; border: 0; white-space: normal; }
-  .booking-table td:not(:first-child)::before { content: attr(data-label); color: var(--muted); font-size: .66rem; font-weight: 780; letter-spacing: .02em; }
-  .booking-table td:first-child { grid-column: 1 / -1; width: auto; padding: 14px; border-bottom: 1px solid #e7eef8; }
-  .booking-table tbody tr:last-child td { border-bottom: 0; }
-  .booking-table tbody tr:last-child td:first-child { border-bottom: 1px solid #e7eef8; }
+  .booking-table tr { display: block; overflow: hidden; background: linear-gradient(145deg, #ffffff, #fbfdff); border: 1px solid var(--line); border-radius: 16px; box-shadow: 0 8px 22px rgb(31 67 118 / 5%); }
+  .booking-table td { display: flex; align-items: center; justify-content: space-between; min-width: 0; gap: 14px; padding: 12px 14px; border: 0; border-bottom: 1px solid #e7eef8; white-space: normal; }
+  .booking-table td:not(:first-child)::before { flex: 0 0 auto; color: var(--muted); content: attr(data-label); font-size: .7rem; font-weight: 780; letter-spacing: .01em; }
+  .booking-table td:first-child { display: block; width: auto; padding: 14px; }
+  .booking-table tbody tr:last-child td { border-bottom: 1px solid #e7eef8; }
+  .booking-table tbody tr:last-child td:last-child { border-bottom: 0; }
   .booking-table .booking-status-cell, .booking-table .booking-date-cell, .booking-table .booking-confirmation-cell { white-space: normal; }
-  .booking-table .booking-confirmation-stack { gap: 5px; }
+  .booking-table .booking-confirmation-stack { justify-items: end; gap: 5px; text-align: right; }
   .booking-worker .avatar { width: 105px; height: 105px; border-radius: 50%; }
   .calendar-worker .avatar { width: 105px; height: 105px; border-radius: 50%; }
   .calendar-card { padding: 0; }
@@ -211,6 +215,16 @@ a.calendar-worker-phone:hover { text-decoration: underline; }
   .week-controls .button { flex: 1; min-width: 0; padding-right: 7px; padding-left: 7px; font-size: .77rem; white-space: nowrap; }
   .calendar-table-wrap { display: none; }
   .mobile-schedule { display: block; }
+  .mobile-week-coverage { display: block; padding: 16px 17px 12px; background: #fbfdff; border-bottom: 1px solid #e7eeea; }
+  .mobile-week-coverage-title { margin: 0 0 5px; color: var(--ink); font-size: .88rem; font-weight: 780; letter-spacing: -.02em; }
+  .mobile-week-day-list { display: grid; margin: 0; padding: 0; list-style: none; }
+  .mobile-week-day { display: grid; grid-template-columns: 82px minmax(0, 1fr); align-items: center; gap: 12px; padding: 10px 0; border-top: 1px solid #e7eef8; }
+  .mobile-week-day-date { display: grid; gap: 2px; }
+  .mobile-week-day-date strong { color: var(--ink); font-size: .78rem; font-weight: 800; }
+  .mobile-week-day-date span { color: var(--muted); font-size: .7rem; font-weight: 640; }
+  .mobile-week-day-counts { display: grid; justify-items: end; gap: 2px; color: var(--blue-dark); font-size: .78rem; font-weight: 740; line-height: 1.25; text-align: right; }
+  .mobile-week-day-empty { justify-self: end; color: #9aa7b7; font-size: .76rem; font-weight: 650; }
+  .mobile-worker-details-title { display: block; margin: 0; padding: 17px 17px 8px; color: var(--ink); font-size: .88rem; font-weight: 780; letter-spacing: -.02em; }
   .auth-card .brand-logo-frame { width: 205px; }
 }
 
