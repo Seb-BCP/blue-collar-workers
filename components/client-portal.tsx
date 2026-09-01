@@ -28,6 +28,8 @@ type ClassificationCount = {
 
 type PortalTab = 'schedule' | 'bookings';
 
+type ScheduleView = 'daily' | 'weekly';
+
 type WorkerBookingRow = {
   worker: ClientWorker;
   booking: ClientWorkerBooking;
@@ -52,13 +54,17 @@ type MobileDaySummary = {
 };
 
 const portalTabs: ReadonlyArray<{ id: PortalTab; label: string }> = [
-  { id: 'schedule', label: 'Weekly schedule' },
+  { id: 'schedule', label: 'Schedule' },
   { id: 'bookings', label: 'Worker bookings' },
+];
+
+const scheduleViews: ReadonlyArray<{ id: ScheduleView; label: string }> = [
+  { id: 'daily', label: 'Daily' },
+  { id: 'weekly', label: 'Weekly' },
 ];
 
 const shortWeekday = new Intl.DateTimeFormat('en-AU', { weekday: 'short' });
 const longWeekday = new Intl.DateTimeFormat('en-AU', { weekday: 'long' });
-const dayNumber = new Intl.DateTimeFormat('en-AU', { day: 'numeric' });
 const calendarDate = new Intl.DateTimeFormat('en-AU', {
   day: 'numeric',
   month: 'short',
@@ -128,7 +134,7 @@ export function ClientPortal({
   const isAdminPreview = mode === 'admin-preview';
   const clientHeading = clientName + (siteName ? ' (' + siteName + ')' : '');
 
-  const scheduleProps: WeeklyScheduleProps = {
+  const scheduleProps: ScheduleProps = {
     workers: scheduledWorkers,
     days,
     weekRange,
@@ -238,7 +244,7 @@ export function ClientPortal({
           <div className="portal-workforce">
             <PortalTabs activeTab={activeTab} onSelect={setActiveTab} />
             {activeTab === 'schedule' ? (
-              <WeeklySchedule {...scheduleProps} />
+              <Schedule {...scheduleProps} />
             ) : (
               <WorkerBookings
                 workers={scheduledWorkers}
@@ -331,7 +337,7 @@ function PortalTabs({
   );
 }
 
-type WeeklyScheduleProps = {
+type ScheduleProps = {
   workers: ClientWorker[];
   days: Date[];
   weekRange: string;
@@ -342,7 +348,7 @@ type WeeklyScheduleProps = {
   onCurrentWeek: () => void;
 };
 
-function WeeklySchedule({
+function Schedule({
   workers,
   days,
   weekRange,
@@ -351,7 +357,26 @@ function WeeklySchedule({
   onPreviousWeek,
   onNextWeek,
   onCurrentWeek,
-}: WeeklyScheduleProps) {
+}: ScheduleProps) {
+  const [scheduleView, setScheduleView] = useState<ScheduleView>('daily');
+  const activeDays = useMemo(
+    () =>
+      days
+        .map((day) => mobileDaySummary(workers, day))
+        .filter((summary) => summary.workers.length > 0),
+    [days, workers],
+  );
+  const [selectedDayKey, setSelectedDayKey] = useState<string | null>(null);
+  const selectedDay =
+    activeDays.find((summary) => summary.dayKey === selectedDayKey) ??
+    activeDays.find((summary) => summary.dayKey === todayKey) ??
+    activeDays[0];
+
+  function showDailyForDay(dayKey: string) {
+    setSelectedDayKey(dayKey);
+    setScheduleView('daily');
+  }
+
   return (
     <section
       aria-labelledby="portal-tab-schedule"
@@ -371,10 +396,97 @@ function WeeklySchedule({
             onPreviousWeek={onPreviousWeek}
           />
         </div>
-        <DesktopCalendar workers={workers} days={days} todayKey={todayKey} />
-        <MobileCalendar workers={workers} days={days} todayKey={todayKey} />
+        <ScheduleViewTabs activeView={scheduleView} onSelect={setScheduleView} />
+        <div
+          aria-labelledby={'schedule-view-tab-' + scheduleView}
+          className="schedule-view-panel"
+          id={'schedule-view-panel-' + scheduleView}
+          role="tabpanel"
+        >
+          {scheduleView === 'daily' ? (
+            <>
+              <DesktopDailyCoverage
+                activeDays={activeDays}
+                selectedDay={selectedDay}
+                setSelectedDayKey={setSelectedDayKey}
+                todayKey={todayKey}
+              />
+              <MobileDailyCoverage
+                activeDays={activeDays}
+                selectedDay={selectedDay}
+                setSelectedDayKey={setSelectedDayKey}
+                todayKey={todayKey}
+              />
+            </>
+          ) : (
+            <>
+              <DesktopCalendar workers={workers} days={days} todayKey={todayKey} />
+              <MobileWeeklySchedule
+                days={days}
+                onShowDaily={showDailyForDay}
+                todayKey={todayKey}
+                workers={workers}
+              />
+            </>
+          )}
+        </div>
       </div>
     </section>
+  );
+}
+
+function ScheduleViewTabs({
+  activeView,
+  onSelect,
+}: {
+  activeView: ScheduleView;
+  onSelect: (view: ScheduleView) => void;
+}) {
+  function onKeyDown(event: KeyboardEvent<HTMLButtonElement>) {
+    const currentIndex = scheduleViews.findIndex((view) => view.id === activeView);
+    let nextIndex = currentIndex;
+
+    if (event.key === 'ArrowRight' || event.key === 'ArrowDown') {
+      nextIndex = (currentIndex + 1) % scheduleViews.length;
+    } else if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') {
+      nextIndex = (currentIndex - 1 + scheduleViews.length) % scheduleViews.length;
+    } else if (event.key === 'Home') {
+      nextIndex = 0;
+    } else if (event.key === 'End') {
+      nextIndex = scheduleViews.length - 1;
+    } else {
+      return;
+    }
+
+    event.preventDefault();
+    const nextView = scheduleViews[nextIndex];
+    onSelect(nextView.id);
+    document.getElementById('schedule-view-tab-' + nextView.id)?.focus();
+  }
+
+  return (
+    <div className="schedule-view-tabs" role="tablist" aria-label="Schedule display">
+      {scheduleViews.map((view) => {
+        const isActive = view.id === activeView;
+
+        return (
+          <button
+            aria-controls={'schedule-view-panel-' + view.id}
+            aria-selected={isActive}
+            className="schedule-view-tab"
+            id={'schedule-view-tab-' + view.id}
+            key={view.id}
+            onClick={() => onSelect(view.id)}
+            onKeyDown={onKeyDown}
+            role="tab"
+            tabIndex={isActive ? 0 : -1}
+            type="button"
+          >
+            {view.label}
+          </button>
+        );
+      })}
+    </div>
   );
 }
 
@@ -384,7 +496,7 @@ function WeekControls({
   onNextWeek,
   onCurrentWeek,
 }: Pick<
-  WeeklyScheduleProps,
+  ScheduleProps,
   'isCurrentWeek' | 'onPreviousWeek' | 'onNextWeek' | 'onCurrentWeek'
 >) {
   return (
@@ -420,11 +532,119 @@ function WeekControls({
   );
 }
 
+function DesktopDailyCoverage({
+  activeDays,
+  selectedDay,
+  setSelectedDayKey,
+  todayKey,
+}: {
+  activeDays: MobileDaySummary[];
+  selectedDay: MobileDaySummary | undefined;
+  setSelectedDayKey: (dayKey: string) => void;
+  todayKey: string;
+}) {
+  if (!selectedDay) {
+    return (
+      <div className="desktop-daily-coverage">
+        <section className="desktop-daily-empty" aria-labelledby="desktop-empty-week-title">
+          <h2 id="desktop-empty-week-title">No workers scheduled this week</h2>
+          <p>Choose another week to review upcoming workforce coverage.</p>
+        </section>
+      </div>
+    );
+  }
+
+  return (
+    <div className="desktop-daily-coverage">
+      <section className="desktop-daily-overview" aria-labelledby="desktop-daily-coverage-title">
+        <div className="desktop-daily-overview-heading">
+          <div>
+            <h2 id="desktop-daily-coverage-title">Daily coverage</h2>
+            <p>Select a day to see who is scheduled on site.</p>
+          </div>
+        </div>
+        <div className="desktop-daily-day-grid" aria-label="Select a schedule day">
+          {activeDays.map((summary) => {
+            const isSelected = summary.dayKey === selectedDay.dayKey;
+            const workerLabel = summary.workers.length === 1 ? 'worker' : 'workers';
+
+            return (
+              <button
+                aria-pressed={isSelected}
+                className="desktop-daily-day"
+                data-selected={isSelected}
+                data-today={summary.dayKey === todayKey}
+                key={summary.dayKey}
+                onClick={() => setSelectedDayKey(summary.dayKey)}
+                type="button"
+              >
+                <span className="desktop-daily-day-date">
+                  <strong>{longWeekday.format(summary.day)}</strong>
+                  <span>{calendarDate.format(summary.day)}</span>
+                </span>
+                <span className="desktop-daily-day-worker-count">
+                  <strong>{summary.workers.length}</strong>
+                  <span>{workerLabel} scheduled</span>
+                </span>
+                <span className="desktop-daily-day-classifications">
+                  {summary.classificationCounts.map(({ classification, count }) => (
+                    <span key={classification}>
+                      {dailyClassificationLabel(classification, count)}
+                    </span>
+                  ))}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </section>
+      <section
+        aria-live="polite"
+        className="desktop-daily-detail"
+        id="desktop-daily-detail"
+      >
+        <div className="desktop-daily-detail-heading">
+          <div>
+            <h2>
+              {longWeekday.format(selectedDay.day)} {calendarDate.format(selectedDay.day)}
+            </h2>
+            <p>
+              {selectedDay.workers.length}{' '}
+              {selectedDay.workers.length === 1 ? 'worker scheduled' : 'workers scheduled'}
+            </p>
+          </div>
+        </div>
+        <ul className="desktop-daily-worker-list">
+          {selectedDay.workers.map(({ worker, classifications, tickKind }) => (
+            <li key={workerKey(worker)}>
+              <span className={scheduleTickClassName(tickKind)} aria-hidden="true">
+                ✓
+              </span>
+              <WorkerAvatar
+                name={worker.name}
+                photoUrl={worker.photoUrl}
+                hasPhotoSource={worker.hasPhotoSource}
+                photoSigningError={worker.photoSigningError}
+                compact
+              />
+              <span className="desktop-daily-worker-copy">
+                <strong>{worker.name}</strong>
+                <span>{classifications.join(' · ') || 'Classification not listed'}</span>
+                <WorkerContact worker={worker} className="desktop-daily-worker-phone" />
+              </span>
+            </li>
+          ))}
+        </ul>
+      </section>
+    </div>
+  );
+}
+
 function DesktopCalendar({
   workers,
   days,
   todayKey,
-}: Pick<WeeklyScheduleProps, 'workers' | 'days' | 'todayKey'>) {
+}: Pick<ScheduleProps, 'workers' | 'days' | 'todayKey'>) {
   return (
     <div className="calendar-table-wrap">
       <table className="calendar-table">
@@ -516,20 +736,17 @@ function DesktopCalendar({
   );
 }
 
-function MobileCalendar({
-  workers,
-  days,
+function MobileDailyCoverage({
+  activeDays,
+  selectedDay,
+  setSelectedDayKey,
   todayKey,
-}: Pick<WeeklyScheduleProps, 'workers' | 'days' | 'todayKey'>) {
-  const activeDays = days
-    .map((day) => mobileDaySummary(workers, day))
-    .filter((summary) => summary.workers.length > 0);
-  const [selectedDayKey, setSelectedDayKey] = useState<string | null>(null);
-  const selectedDay =
-    activeDays.find((summary) => summary.dayKey === selectedDayKey) ??
-    activeDays.find((summary) => summary.dayKey === todayKey) ??
-    activeDays[0];
-
+}: {
+  activeDays: MobileDaySummary[];
+  selectedDay: MobileDaySummary | undefined;
+  setSelectedDayKey: (dayKey: string) => void;
+  todayKey: string;
+}) {
   if (!selectedDay) {
     return (
       <div className="mobile-schedule">
@@ -541,65 +758,100 @@ function MobileCalendar({
     );
   }
 
-  const mobileWeekGridStyle = {
-    '--mobile-week-columns': `repeat(${activeDays.length}, minmax(0, 1fr))`,
-  } as CSSProperties;
-
   return (
-    <div className="mobile-schedule" style={mobileWeekGridStyle}>
+    <div className="mobile-schedule">
       <MobileWeekSpread
         activeDays={activeDays}
         selectedDay={selectedDay}
         setSelectedDayKey={setSelectedDayKey}
         todayKey={todayKey}
       />
-      <section className="mobile-roster" aria-labelledby="mobile-roster-title">
-        <div className="mobile-roster-heading">
-          <h2 id="mobile-roster-title">Worker schedule</h2>
+    </div>
+  );
+}
+
+function MobileWeeklySchedule({
+  days,
+  onShowDaily,
+  todayKey,
+  workers,
+}: {
+  days: Date[];
+  onShowDaily: (dayKey: string) => void;
+  todayKey: string;
+  workers: ClientWorker[];
+}) {
+  const weekDays = days.map((day) => mobileDaySummary(workers, day));
+  const hasScheduledWorkers = weekDays.some((summary) => summary.workers.length > 0);
+
+  if (!hasScheduledWorkers) {
+    return (
+      <div className="mobile-schedule">
+        <section className="mobile-empty-week" aria-labelledby="mobile-empty-week-title">
+          <h2 id="mobile-empty-week-title">No workers scheduled this week</h2>
+          <p>Choose another week to review upcoming workforce coverage.</p>
+        </section>
+      </div>
+    );
+  }
+
+  const mobileWeekGridStyle = {
+    '--mobile-week-columns': `repeat(${weekDays.length}, minmax(0, 1fr))`,
+  } as CSSProperties;
+
+  return (
+    <div className="mobile-schedule mobile-schedule--weekly" style={mobileWeekGridStyle}>
+      <MobileWeeklyOverview
+        days={weekDays}
+        onShowDaily={onShowDaily}
+        todayKey={todayKey}
+      />
+      <section className="mobile-weekly-roster" aria-labelledby="mobile-weekly-roster-title">
+        <div className="mobile-weekly-roster-heading">
+          <div>
+            <h2 id="mobile-weekly-roster-title">Workers this week</h2>
+            <p>Each box shows a worker&apos;s scheduled day.</p>
+          </div>
           <MobileScheduleTickKey />
         </div>
-        <div className="mobile-roster-day-labels" aria-hidden="true">
-          {activeDays.map(({ day, dayKey }) => (
-            <span key={dayKey}>
-              <strong>{shortWeekday.format(day)}</strong>
-              <small>{dayNumber.format(day)}</small>
-            </span>
-          ))}
-        </div>
-        <div className="mobile-roster-list">
+        <div className="mobile-weekly-roster-list">
           {workers.map((worker) => {
             const classifications = classificationsForWeek(worker, days);
 
             return (
-              <article className="mobile-roster-worker" key={workerKey(worker)}>
+              <article className="mobile-weekly-worker" key={workerKey(worker)}>
                 <WorkerScheduleIdentity
                   worker={worker}
                   classification={classifications.join(' · ') || null}
                 />
-                <div className="mobile-worker-day-grid" aria-label={worker.name + "'s weekly assignments"}>
-                  {activeDays.map(({ day, dayKey }) => {
+                <div
+                  className="mobile-weekly-day-grid"
+                  aria-label={worker.name + "'s weekly assignments"}
+                >
+                  {weekDays.map(({ day, dayKey }) => {
                     const tickKind = scheduleTickKind(worker, dayKey);
                     const assigned = tickKind !== null;
 
                     return (
                       <span
-                        className="mobile-worker-day"
+                        className="mobile-weekly-day"
                         data-today={dayKey === todayKey}
                         key={dayKey}
                         role="img"
                         aria-label={
-                          shortWeekday.format(day) +
+                          longWeekday.format(day) +
                           ' ' +
                           calendarDate.format(day) +
                           ': ' +
                           scheduleTickDescription(tickKind)
                         }
                       >
+                        <span className="mobile-weekly-day-label" aria-hidden="true">
+                          <strong>{shortWeekday.format(day)}</strong>
+                          <small>{calendarDate.format(day)}</small>
+                        </span>
                         {assigned ? (
-                          <span
-                            className={scheduleTickClassName(tickKind)}
-                            aria-hidden="true"
-                          >
+                          <span className={scheduleTickClassName(tickKind)} aria-hidden="true">
                             ✓
                           </span>
                         ) : (
@@ -617,6 +869,69 @@ function MobileCalendar({
         </div>
       </section>
     </div>
+  );
+}
+
+function MobileWeeklyOverview({
+  days,
+  onShowDaily,
+  todayKey,
+}: {
+  days: MobileDaySummary[];
+  onShowDaily: (dayKey: string) => void;
+  todayKey: string;
+}) {
+  return (
+    <section className="mobile-weekly-overview" aria-labelledby="mobile-weekly-overview-title">
+      <div className="mobile-weekly-overview-heading">
+        <div>
+          <h2 id="mobile-weekly-overview-title">Week at a glance</h2>
+          <p>Tap a day to view the people scheduled.</p>
+        </div>
+      </div>
+      <div className="mobile-weekly-overview-grid" aria-label="Weekly workforce coverage">
+        {days.map((summary) => {
+          const workerLabel = summary.workers.length === 1 ? 'worker' : 'workers';
+          const classifications = summary.classificationCounts
+            .map(({ classification, count }) => dailyClassificationLabel(classification, count))
+            .join(', ');
+          const isEmpty = summary.workers.length === 0;
+
+          return (
+            <button
+              aria-label={
+                longWeekday.format(summary.day) +
+                ' ' +
+                calendarDate.format(summary.day) +
+                ': ' +
+                summary.workers.length +
+                ' ' +
+                workerLabel +
+                ' scheduled' +
+                (classifications ? ', ' + classifications : '') +
+                (isEmpty ? '. No daily coverage to view.' : '. View daily coverage.')
+              }
+              className="mobile-weekly-overview-day"
+              data-empty={isEmpty}
+              data-today={summary.dayKey === todayKey}
+              disabled={isEmpty}
+              key={summary.dayKey}
+              onClick={() => onShowDaily(summary.dayKey)}
+              type="button"
+            >
+              <span className="mobile-weekly-overview-date" aria-hidden="true">
+                <strong>{shortWeekday.format(summary.day)}</strong>
+                <small>{calendarDate.format(summary.day)}</small>
+              </span>
+              <span className="mobile-weekly-overview-count" aria-hidden="true">
+                <strong>{summary.workers.length}</strong>
+                <small>{workerLabel}</small>
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    </section>
   );
 }
 
@@ -804,7 +1119,7 @@ function WorkerBookings({
   workers,
   days,
   todayKey,
-}: Pick<WeeklyScheduleProps, 'workers' | 'days' | 'todayKey'>) {
+}: Pick<ScheduleProps, 'workers' | 'days' | 'todayKey'>) {
   const rows = visibleWorkerBookings(workers, days, todayKey);
 
   return (
