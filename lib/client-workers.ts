@@ -49,6 +49,10 @@ export type ClientWorker = {
   name: string;
   phone: string | null;
   photoUrl: string | null;
+  /** A photo source exists, even if signing or browser image loading failed. */
+  hasPhotoSource: boolean;
+  /** Server-reported Storage signing failure, if any. */
+  photoSigningError: string | null;
   assignedDates: string[];
   bookings: ClientWorkerBooking[];
 };
@@ -124,12 +128,17 @@ export function groupClientWorkers(
 export function withSignedPhotoUrls(
   workers: ClientWorkerRecord[],
   photoUrls: Map<string, string>,
+  photoSigningErrors: Map<string, string>,
 ): ClientWorker[] {
   return workers.map((worker) => ({
     name: worker.name,
     phone: worker.phone,
     photoUrl: worker.photo
       ? (photoUrls.get(photoLocationKey(worker.photo)) ?? null)
+      : null,
+    hasPhotoSource: Boolean(worker.photo),
+    photoSigningError: worker.photo
+      ? (photoSigningErrors.get(photoLocationKey(worker.photo)) ?? null)
       : null,
     assignedDates: worker.assignedDates,
     bookings: worker.bookings,

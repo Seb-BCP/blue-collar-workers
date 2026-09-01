@@ -88,6 +88,7 @@ button:focus-visible, input:focus-visible { outline: 3px solid rgb(57 119 223 / 
 .booking-status--pending { color: #86550f; background: #fff7e7; border: 1px solid #f2dbab; }
 .avatar { position: relative; display: grid; flex: 0 0 auto; width: 57px; height: 57px; place-items: center; overflow: hidden; color: var(--blue-dark); background: linear-gradient(145deg, #e2edff, #f6f9ff); border: 1px solid var(--blue-line); border-radius: 17px; font-size: .94rem; font-weight: 850; letter-spacing: -.04em; }
 .avatar img { width: 100%; height: 100%; object-fit: cover; }
+.avatar-photo-error { display: grid; width: 100%; height: 100%; place-items: center; color: #9b4c00; background: #fff6e9; border: 1px solid #f0ce9f; font-size: 1.05em; font-weight: 900; }
 
 .calendar-card { overflow: hidden; background: var(--surface); border: 1px solid var(--line); border-radius: 20px; box-shadow: var(--shadow); }
 .calendar-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: clamp(18px, 2.2vw, 25px) clamp(18px, 2.2vw, 28px); background: linear-gradient(180deg, #ffffff, #fbfdff); border-bottom: 1px solid var(--line); }

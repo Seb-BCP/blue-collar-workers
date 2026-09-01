@@ -70,7 +70,11 @@ export default async function PortalPage() {
 
   const workerRecords = groupClientWorkers(readClientWorkerCalendarRows(data));
   const signedPhotoUrls = await signAuthorisedWorkerPhotos(supabase, workerRecords);
-  const workers = withSignedPhotoUrls(workerRecords, signedPhotoUrls);
+  const workers = withSignedPhotoUrls(
+    workerRecords,
+    signedPhotoUrls.urls,
+    signedPhotoUrls.errors,
+  );
 
   return (
     <ClientPortal

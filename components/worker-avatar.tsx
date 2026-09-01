@@ -5,12 +5,16 @@ import { useState } from 'react';
 type WorkerAvatarProps = {
   name: string;
   photoUrl: string | null;
+  hasPhotoSource: boolean;
+  photoSigningError: string | null;
   compact?: boolean;
 };
 
 export function WorkerAvatar({
   name,
   photoUrl,
+  hasPhotoSource,
+  photoSigningError,
   compact = false,
 }: WorkerAvatarProps) {
   const [imageFailed, setImageFailed] = useState(false);
@@ -34,7 +38,36 @@ export function WorkerAvatar({
         // A signed image should not be cached or routed through an image
         // optimiser that might outlive its short-lived authorisation.
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={photoUrl} alt="" onError={() => setImageFailed(true)} />
+        <img
+          src={photoUrl}
+          alt=""
+          onError={() => {
+            // The URL itself is intentionally not logged because it contains
+            // the temporary Storage signature. Server logs show whether
+            // signing succeeded; this identifies a later image-load failure.
+            console.error('Authorised worker photo failed to load in the browser.', {
+              workerName: name,
+              reason: 'The signed image request was rejected or could not render.',
+            });
+            setImageFailed(true);
+          }}
+        />
+      ) : hasPhotoSource ? (
+        <span
+          className="avatar-photo-error"
+          aria-label={
+            photoSigningError
+              ? `Worker photo unavailable: ${photoSigningError}`
+              : 'Worker photo unavailable: signed image could not be loaded.'
+          }
+          title={
+            photoSigningError
+              ? `Worker photo unavailable: ${photoSigningError}`
+              : 'Worker photo unavailable: signed image could not be loaded.'
+          }
+        >
+          !
+        </span>
       ) : (
         <span aria-hidden="true">{initials || '—'}</span>
       )}

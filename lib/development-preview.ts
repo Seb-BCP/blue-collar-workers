@@ -149,7 +149,11 @@ export function getDevelopmentPreviewWorkers(): ClientWorker[] {
         ),
       ],
     },
-  ];
+  ].map((worker) => ({
+    ...worker,
+    hasPhotoSource: Boolean(worker.photoUrl),
+    photoSigningError: null,
+  }));
 }
 
 function fixtureBooking(

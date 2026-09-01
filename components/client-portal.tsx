@@ -440,7 +440,13 @@ function WorkerScheduleIdentity({
 }) {
   return (
     <div className="calendar-worker">
-      <WorkerAvatar name={worker.name} photoUrl={worker.photoUrl} compact />
+      <WorkerAvatar
+        name={worker.name}
+        photoUrl={worker.photoUrl}
+        hasPhotoSource={worker.hasPhotoSource}
+        photoSigningError={worker.photoSigningError}
+        compact
+      />
       <div className="calendar-worker-copy">
         <span className="calendar-worker-name">{worker.name}</span>
         <WorkerClassification
@@ -487,6 +493,8 @@ function WorkerBookings({
                       <WorkerAvatar
                         name={worker.name}
                         photoUrl={worker.photoUrl}
+                        hasPhotoSource={worker.hasPhotoSource}
+                        photoSigningError={worker.photoSigningError}
                         compact
                       />
                       <div className="booking-worker-copy">
