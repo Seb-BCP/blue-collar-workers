@@ -135,12 +135,16 @@ export function ClientPortal({
             className="workforce-summary"
             aria-label={
               String(displayedWorkerCount) +
-              (displayedWorkerCount === 1 ? ' current worker' : ' current workers')
+              (displayedWorkerCount === 1
+                ? ' scheduled worker this week'
+                : ' scheduled workers this week')
             }
           >
             <div className="workforce-summary-heading">
               <span className="summary-count">{displayedWorkerCount}</span>
-              {displayedWorkerCount === 1 ? 'current worker' : 'current workers'}
+              {displayedWorkerCount === 1
+                ? 'scheduled worker this week'
+                : 'scheduled workers this week'}
             </div>
             <MobileWorkforceClassifications counts={weeklyClassificationCounts} />
             <div className="schedule-tick-key" aria-label="Weekly schedule tick meanings">
@@ -175,7 +179,11 @@ export function ClientPortal({
             {activeTab === 'schedule' ? (
               <WeeklySchedule {...scheduleProps} />
             ) : (
-              <WorkerBookings workers={workers} todayKey={initialBusinessDate} />
+              <WorkerBookings
+                workers={scheduledWorkers}
+                days={days}
+                todayKey={initialBusinessDate}
+              />
             )}
           </div>
         )}
@@ -195,7 +203,12 @@ function MobileWorkforceClassifications({
     <ul className="mobile-workforce-classifications" aria-label="Workers by classification">
       {counts.map(({ classification, count }) => (
         <li key={classification}>
-          {dailyClassificationLabel(classification, count)}
+          <strong>{count}</strong>
+          <span>
+            {classification === 'Labourer' && count !== 1
+              ? 'Labourers'
+              : classification}
+          </span>
         </li>
       ))}
     </ul>
@@ -314,8 +327,15 @@ function WeekControls({
   'isCurrentWeek' | 'onPreviousWeek' | 'onNextWeek' | 'onCurrentWeek'
 >) {
   return (
-    <div className="week-controls" aria-label="Calendar week controls">
-      <button className="button button--calendar" type="button" onClick={onPreviousWeek}>
+    <div
+      className={'week-controls' + (isCurrentWeek ? '' : ' week-controls--away')}
+      aria-label="Calendar week controls"
+    >
+      <button
+        className="button button--calendar button--week-previous"
+        type="button"
+        onClick={onPreviousWeek}
+      >
         Previous
       </button>
       <button
@@ -328,7 +348,11 @@ function WeekControls({
       >
         {isCurrentWeek ? 'This week' : 'Return to this week'}
       </button>
-      <button className="button button--calendar" type="button" onClick={onNextWeek}>
+      <button
+        className="button button--calendar button--week-next"
+        type="button"
+        onClick={onNextWeek}
+      >
         Next
       </button>
     </div>
@@ -438,80 +462,121 @@ function MobileCalendar({
 }: Pick<WeeklyScheduleProps, 'workers' | 'days' | 'todayKey'>) {
   return (
     <div className="mobile-schedule">
-      <section className="mobile-week-coverage" aria-label="Weekly worker coverage">
-        <p className="mobile-week-coverage-title">Week coverage</p>
-        <ol className="mobile-week-day-list">
+      <section className="mobile-week-overview" aria-labelledby="mobile-coverage-title">
+        <h2 id="mobile-coverage-title">Week spread</h2>
+        <div className="mobile-week-strip" role="list">
           {days.map((day) => {
-            const dayCounts = dailyClassificationCounts(workers, day);
+            const dayKey = dateKey(day);
+            const workerCount = workers.filter(
+              (worker) => scheduleTickKind(worker, dayKey) !== null,
+            ).length;
 
             return (
-              <li className="mobile-week-day" key={dateKey(day)}>
-                <div className="mobile-week-day-date">
-                  <strong>{shortWeekday.format(day)}</strong>
-                  <span>{calendarDate.format(day)}</span>
-                </div>
-                {dayCounts.length > 0 ? (
-                  <div className="mobile-week-day-counts">
-                    {dayCounts.map(({ classification, count }) => (
-                      <span key={classification}>
-                        {dailyClassificationLabel(classification, count)}
-                      </span>
-                    ))}
-                  </div>
-                ) : (
-                  <span className="mobile-week-day-empty">No workers</span>
-                )}
-              </li>
+              <div
+                aria-label={
+                  longWeekday.format(day) +
+                  ' ' +
+                  calendarDate.format(day) +
+                  ': ' +
+                  String(workerCount) +
+                  (workerCount === 1 ? ' worker scheduled' : ' workers scheduled')
+                }
+                className="mobile-week-strip-day"
+                data-today={dayKey === todayKey}
+                key={dayKey}
+                role="listitem"
+              >
+                <span>{shortWeekday.format(day).slice(0, 1)}</span>
+                <small>{dayNumber.format(day)}</small>
+                <strong>{workerCount}</strong>
+              </div>
             );
           })}
-        </ol>
+        </div>
       </section>
-      <h2 className="mobile-worker-details-title">Worker details</h2>
-      {workers.map((worker) => {
-        const classifications = classificationsForWeek(worker, days);
+      <section className="mobile-roster" aria-labelledby="mobile-roster-title">
+        <div className="mobile-roster-heading">
+          <h2 id="mobile-roster-title">Worker details</h2>
+          <MobileScheduleTickKey />
+        </div>
+        <div className="mobile-roster-day-labels" aria-hidden="true">
+          {days.map((day) => (
+            <span key={dateKey(day)}>
+              <strong>{shortWeekday.format(day).slice(0, 1)}</strong>
+              <small>{dayNumber.format(day)}</small>
+            </span>
+          ))}
+        </div>
+        <div className="mobile-roster-list">
+          {workers.map((worker) => {
+            const classifications = classificationsForWeek(worker, days);
 
-        return (
-          <article className="mobile-schedule-worker" key={workerKey(worker)}>
-            <WorkerScheduleIdentity
-              worker={worker}
-              classification={classifications.join(' · ') || null}
-            />
-            <div className="mobile-days" aria-label={worker.name + "'s weekly assignments"}>
-              {days.map((day) => {
-                const dayKey = dateKey(day);
-                const tickKind = scheduleTickKind(worker, dayKey);
-                const assigned = tickKind !== null;
-                const isToday = dayKey === todayKey;
+            return (
+              <article className="mobile-roster-worker" key={workerKey(worker)}>
+                <WorkerScheduleIdentity
+                  worker={worker}
+                  classification={classifications.join(' · ') || null}
+                />
+                <div className="mobile-worker-day-grid" aria-label={worker.name + "'s weekly assignments"}>
+                  {days.map((day) => {
+                    const dayKey = dateKey(day);
+                    const tickKind = scheduleTickKind(worker, dayKey);
+                    const assigned = tickKind !== null;
 
-                return (
-                  <div
-                    className={mobileDayClassName(assigned, isToday)}
-                    key={dayKey}
-                    aria-label={
-                      shortWeekday.format(day) +
-                      ' ' +
-                      calendarDate.format(day) +
-                      ': ' +
-                      scheduleTickDescription(tickKind)
-                    }
-                  >
-                    <span className="mobile-day-label">
-                      {shortWeekday.format(day).slice(0, 2)}
-                    </span>
-                    <span className="mobile-day-number">{dayNumber.format(day)}</span>
-                    <span
-                      className={mobileScheduleTickClassName(tickKind)}
-                      aria-hidden="true"
-                    >
-                      {assigned ? '✓' : '·'}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-          </article>
-        );
-      })}
+                    return (
+                      <span
+                        className="mobile-worker-day"
+                        data-today={dayKey === todayKey}
+                        key={dayKey}
+                        role="img"
+                        aria-label={
+                          shortWeekday.format(day) +
+                          ' ' +
+                          calendarDate.format(day) +
+                          ': ' +
+                          scheduleTickDescription(tickKind)
+                        }
+                      >
+                        {assigned ? (
+                          <span
+                            className={scheduleTickClassName(tickKind)}
+                            aria-hidden="true"
+                          >
+                            ✓
+                          </span>
+                        ) : (
+                          <span className="no-assignment" aria-hidden="true">
+                            —
+                          </span>
+                        )}
+                      </span>
+                    );
+                  })}
+                </div>
+              </article>
+            );
+          })}
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function MobileScheduleTickKey() {
+  return (
+    <div className="mobile-schedule-tick-key" aria-label="Weekly schedule tick meanings">
+      <span>
+        <span className="assignment-mark assignment-mark--start" aria-hidden="true">✓</span>
+        First day
+      </span>
+      <span>
+        <span className="assignment-mark" aria-hidden="true">✓</span>
+        Working
+      </span>
+      <span>
+        <span className="assignment-mark assignment-mark--confirmed-end" aria-hidden="true">✓</span>
+        Last day confirmed
+      </span>
     </div>
   );
 }
@@ -546,9 +611,10 @@ function WorkerScheduleIdentity({
 
 function WorkerBookings({
   workers,
+  days,
   todayKey,
-}: Pick<WeeklyScheduleProps, 'workers' | 'todayKey'>) {
-  const rows = visibleWorkerBookings(workers, todayKey);
+}: Pick<WeeklyScheduleProps, 'workers' | 'days' | 'todayKey'>) {
+  const rows = visibleWorkerBookings(workers, days, todayKey);
 
   return (
     <section
@@ -560,75 +626,139 @@ function WorkerBookings({
       {rows.length === 0 ? (
         <EmptyBookings />
       ) : (
-        <div className="booking-table-wrap">
-          <table className="booking-table">
-            <thead>
-              <tr>
-                <th scope="col">Worker</th>
-                <th scope="col">Status</th>
-                <th scope="col">Start Date</th>
-                <th scope="col">End Date (planned)</th>
-                <th scope="col">Last day confirmed</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map(({ worker, booking, status }) => (
-                <tr key={workerKey(worker) + '\u0000' + booking.key}>
-                  <td>
-                    <div className="booking-worker">
-                      <WorkerAvatar
-                        name={worker.name}
-                        photoUrl={worker.photoUrl}
-                        hasPhotoSource={worker.hasPhotoSource}
-                        photoSigningError={worker.photoSigningError}
-                        compact
-                      />
-                      <div className="booking-worker-copy">
-                        <strong className="worker-name">{worker.name}</strong>
-                        <WorkerClassification
-                          classification={booking.classification}
-                          className="worker-classification"
-                        />
-                        <WorkerContact worker={worker} className="worker-phone" />
-                      </div>
-                    </div>
-                  </td>
-                  <td className="booking-status-cell" data-label="Status">
-                    <span className={workerBookingStatusClass(status)}>
-                      {workerBookingStatusLabel(status)}
-                    </span>
-                  </td>
-                  <td className="booking-date-cell" data-label="Start date">
-                    {booking.startDate
-                      ? formatBookingDate(booking.startDate)
-                      : 'Not supplied'}
-                  </td>
-                  <td className="booking-date-cell" data-label="End date (planned)">
-                    {booking.endDate !== null && !booking.ongoingAssignment
-                      ? bookingEndDateLabel(booking)
-                      : null}
-                  </td>
-                  <td className="booking-confirmation-cell" data-label="Last day confirmed">
-                    <div className="booking-confirmation-stack">
-                      {booking.endDate !== null && !booking.ongoingAssignment ? (
-                        <span className={bookingConfirmationClass(booking)}>
-                          {bookingConfirmationLabel(booking)}
-                        </span>
-                      ) : null}
-                      {booking.ongoingAssignment ? (
-                        <span className="booking-status booking-status--ongoing">
-                          Ongoing
-                        </span>
-                      ) : null}
-                    </div>
-                  </td>
+        <>
+          <div className="booking-table-wrap">
+            <table className="booking-table">
+              <thead>
+                <tr>
+                  <th scope="col">Worker</th>
+                  <th scope="col">Status</th>
+                  <th scope="col">Start Date</th>
+                  <th scope="col">End Date (planned)</th>
+                  <th scope="col">Last day confirmed</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {rows.map(({ worker, booking, status }) => (
+                  <tr key={workerKey(worker) + '\u0000' + booking.key}>
+                    <td>
+                      <div className="booking-worker">
+                        <WorkerAvatar
+                          name={worker.name}
+                          photoUrl={worker.photoUrl}
+                          hasPhotoSource={worker.hasPhotoSource}
+                          photoSigningError={worker.photoSigningError}
+                          compact
+                        />
+                        <div className="booking-worker-copy">
+                          <strong className="worker-name">{worker.name}</strong>
+                          <WorkerClassification
+                            classification={booking.classification}
+                            className="worker-classification"
+                          />
+                          <WorkerContact worker={worker} className="worker-phone" />
+                        </div>
+                      </div>
+                    </td>
+                    <td className="booking-status-cell" data-label="Status">
+                      <span className={workerBookingStatusClass(status)}>
+                        {workerBookingStatusLabel(status)}
+                      </span>
+                    </td>
+                    <td className="booking-date-cell" data-label="Start date">
+                      {booking.startDate
+                        ? formatBookingDate(booking.startDate)
+                        : 'Not supplied'}
+                    </td>
+                    <td className="booking-date-cell" data-label="End date (planned)">
+                      {booking.endDate !== null && !booking.ongoingAssignment
+                        ? bookingEndDateLabel(booking)
+                        : null}
+                    </td>
+                    <td className="booking-confirmation-cell" data-label="Last day confirmed">
+                      <div className="booking-confirmation-stack">
+                        {booking.endDate !== null && !booking.ongoingAssignment ? (
+                          <span className={bookingConfirmationClass(booking)}>
+                            {bookingConfirmationLabel(booking)}
+                          </span>
+                        ) : null}
+                        {booking.ongoingAssignment ? (
+                          <span className="booking-status booking-status--ongoing">
+                            Ongoing
+                          </span>
+                        ) : null}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <MobileWorkerBookings rows={rows} />
+        </>
       )}
     </section>
+  );
+}
+
+function MobileWorkerBookings({ rows }: { rows: WorkerBookingRow[] }) {
+  return (
+    <div className="mobile-booking-list" aria-label="Worker bookings">
+      {rows.map(({ worker, booking, status }) => (
+        <article className="mobile-booking-card" key={workerKey(worker) + '\u0000' + booking.key}>
+          <header className="mobile-booking-card-header">
+            <div className="mobile-booking-worker">
+              <WorkerAvatar
+                name={worker.name}
+                photoUrl={worker.photoUrl}
+                hasPhotoSource={worker.hasPhotoSource}
+                photoSigningError={worker.photoSigningError}
+                compact
+              />
+              <div className="mobile-booking-worker-copy">
+                <strong className="worker-name">{worker.name}</strong>
+                <WorkerClassification
+                  classification={booking.classification}
+                  className="worker-classification"
+                />
+                <WorkerContact worker={worker} className="worker-phone" />
+              </div>
+            </div>
+            <span className={workerBookingStatusClass(status)}>
+              {workerBookingStatusLabel(status)}
+            </span>
+          </header>
+          <dl className="mobile-booking-facts">
+            <div>
+              <dt>Starts</dt>
+              <dd>{booking.startDate ? formatBookingDate(booking.startDate) : 'Not supplied'}</dd>
+            </div>
+            <div>
+              <dt>Planned end</dt>
+              <dd>
+                {booking.endDate !== null && !booking.ongoingAssignment
+                  ? bookingEndDateLabel(booking)
+                  : '—'}
+              </dd>
+            </div>
+            <div>
+              <dt>Last day</dt>
+              <dd>
+                {booking.ongoingAssignment ? (
+                  <span className="booking-status booking-status--ongoing">Ongoing</span>
+                ) : booking.endDate !== null ? (
+                  <span className={bookingConfirmationClass(booking)}>
+                    {bookingConfirmationLabel(booking)}
+                  </span>
+                ) : (
+                  '—'
+                )}
+              </dd>
+            </div>
+          </dl>
+        </article>
+      ))}
+    </div>
   );
 }
 
@@ -775,12 +905,17 @@ function dailyClassificationLabel(classification: string, count: number): string
 
 function visibleWorkerBookings(
   workers: ClientWorker[],
+  days: Date[],
   todayKey: string,
 ): WorkerBookingRow[] {
   return workers
     .flatMap((worker) =>
       workerBookings(worker)
-        .filter((booking) => shouldShowWorkerBooking(booking, todayKey))
+        .filter(
+          (booking) =>
+            shouldShowWorkerBooking(booking, todayKey) &&
+            days.some((day) => bookingWorksOnScheduleDay(booking, dateKey(day))),
+        )
         .map((booking) => ({
           worker,
           booking,
@@ -876,16 +1011,6 @@ function bookingConfirmationClass(booking: ClientWorkerBooking): string {
   return 'booking-status booking-status--pending';
 }
 
-function mobileDayClassName(assigned: boolean, isToday: boolean): string {
-  return [
-    'mobile-day',
-    assigned ? 'mobile-day--assigned' : '',
-    isToday ? 'mobile-day--today' : '',
-  ]
-    .filter(Boolean)
-    .join(' ');
-}
-
 function scheduleTickKind(
   worker: ClientWorker,
   dayKey: string,
@@ -951,16 +1076,6 @@ function scheduleTickClassName(kind: ScheduleTickKind | null): string {
     'assignment-mark',
     kind === 'start' ? 'assignment-mark--start' : '',
     kind === 'confirmed-end' ? 'assignment-mark--confirmed-end' : '',
-  ]
-    .filter(Boolean)
-    .join(' ');
-}
-
-function mobileScheduleTickClassName(kind: ScheduleTickKind | null): string {
-  return [
-    'mobile-day-check',
-    kind === 'start' ? 'mobile-day-check--start' : '',
-    kind === 'confirmed-end' ? 'mobile-day-check--confirmed-end' : '',
   ]
     .filter(Boolean)
     .join(' ');

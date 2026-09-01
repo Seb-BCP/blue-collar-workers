@@ -60,7 +60,8 @@ button:focus-visible, input:focus-visible { outline: 3px solid rgb(57 119 223 / 
 .schedule-tick-key { display: flex; flex-wrap: wrap; gap: 7px 11px; padding-top: 8px; border-top: 1px solid rgb(126 169 232 / 32%); color: var(--muted); font-size: .7rem; font-weight: 720; }
 .schedule-tick-key-item { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
 .schedule-tick-key .assignment-mark { width: 18px; height: 18px; box-shadow: none; font-size: .58rem; }
-.mobile-workforce-classifications, .mobile-week-coverage, .mobile-worker-details-title { display: none; }
+.mobile-workforce-classifications, .mobile-booking-list { display: none; }
+.mobile-week-overview, .mobile-roster, .mobile-schedule-tick-key { display: none; }
 .portal-workforce { min-width: 0; }
 .portal-tabs { display: flex; align-items: center; gap: 9px; margin-bottom: 24px; }
 .portal-tab { min-height: 42px; padding: 0 17px; color: var(--muted); background: transparent; border: 1px solid transparent; border-radius: 10px; font-size: .91rem; font-weight: 730; transition: color 160ms ease, background 160ms ease, border-color 160ms ease, box-shadow 160ms ease; }
@@ -142,18 +143,6 @@ a.calendar-worker-phone:hover { text-decoration: underline; }
 .assignment-mark--confirmed-end { background: #c94852; box-shadow: 0 3px 8px rgb(201 72 82 / 24%); }
 .no-assignment { color: #c9d4e2; font-size: 1rem; }
 .mobile-schedule { display: none; }
-.mobile-schedule-worker { padding: 17px clamp(18px, 2.2vw, 28px); border-bottom: 1px solid #e7eeea; }
-.mobile-schedule-worker:first-child { padding-top: 0; }
-.mobile-schedule-worker:last-child { padding-bottom: 0; border-bottom: 0; }
-.mobile-days { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 5px; margin-top: 13px; }
-.mobile-day { display: grid; min-width: 0; min-height: 57px; place-items: center; padding: 6px 1px; color: var(--muted); background: #f7faff; border: 1px solid transparent; border-radius: 11px; }
-.mobile-day--assigned { color: var(--blue-dark); background: var(--blue-pale); border-color: var(--blue-line); }
-.mobile-day--today { box-shadow: inset 0 0 0 1px var(--blue); }
-.mobile-day-label { font-size: .61rem; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; }
-.mobile-day-number { margin-top: 3px; font-size: .84rem; font-weight: 800; }
-.mobile-day-check { margin-top: 1px; color: var(--blue); font-size: .78rem; font-weight: 900; }
-.mobile-day-check--start { color: #27834a; }
-.mobile-day-check--confirmed-end { color: #c94852; }
 
 .empty-state { padding: 40px 24px; text-align: center; background: var(--surface); border: 1px dashed var(--blue-line); border-radius: 18px; }
 .empty-state-icon { display: grid; width: 45px; height: 45px; margin: 0 auto 13px; place-items: center; color: var(--blue); background: var(--blue-pale); border-radius: 14px; font-size: 1.35rem; }
@@ -179,61 +168,108 @@ a.calendar-worker-phone:hover { text-decoration: underline; }
 .notice-icon { display: grid; width: 52px; height: 52px; margin-bottom: 24px; place-items: center; color: var(--green); background: var(--green-pale); border-radius: 17px; font-size: 1.5rem; }
 .notice-icon--warning { color: #a84e0d; background: var(--orange-pale); }
 
-@media (max-width: 700px) {
-  .topbar { min-height: 88px; padding: 6px 16px; }
-  .brand-logo-frame { width: 112px; }
-  .topbar .brand-logo-frame { width: 142px; }
+@media (max-width: 700px), (max-width: 932px) and (max-height: 520px) {
+  .topbar { min-height: 76px; padding: 8px 16px; }
+  .brand-logo-frame, .topbar .brand-logo-frame { width: 132px; }
   .preview-badge-full { display: none; }
   .preview-badge-short { display: inline; }
   .user-context { display: none; }
-  .portal-main { padding: 25px 16px 48px; }
-  .page-heading { display: block; margin-bottom: 30px; }
-  .workforce-summary { display: inline-grid; width: 100%; margin-top: 20px; }
-  .mobile-workforce-classifications { display: flex; flex-wrap: wrap; gap: 5px 10px; margin: 0; padding: 0; color: var(--blue-dark); font-size: .78rem; font-weight: 760; list-style: none; }
-  .mobile-workforce-classifications li { white-space: nowrap; }
-  .mobile-workforce-classifications li + li::before { margin-right: 10px; color: #91add7; content: '•'; }
-  .portal-tabs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-bottom: 16px; }
-  .portal-tab { width: 100%; min-height: 44px; padding-right: 9px; padding-left: 9px; font-size: .8rem; white-space: nowrap; }
-  .booking-table-wrap { overflow: visible; background: transparent; border: 0; border-radius: 0; box-shadow: none; }
-  .booking-table, .booking-table tbody { display: block; min-width: 0; }
-  .booking-table thead { display: none; }
-  .booking-table tbody { display: grid; gap: 12px; }
-  .booking-table tr { display: block; overflow: hidden; background: linear-gradient(145deg, #ffffff, #fbfdff); border: 1px solid var(--line); border-radius: 16px; box-shadow: 0 8px 22px rgb(31 67 118 / 5%); }
-  .booking-table td { display: flex; align-items: center; justify-content: space-between; min-width: 0; gap: 14px; padding: 12px 14px; border: 0; border-bottom: 1px solid #e7eef8; white-space: normal; }
-  .booking-table td:not(:first-child)::before { flex: 0 0 auto; color: var(--muted); content: attr(data-label); font-size: .7rem; font-weight: 780; letter-spacing: .01em; }
-  .booking-table td:first-child { display: block; width: auto; padding: 14px; }
-  .booking-table tbody tr:last-child td { border-bottom: 1px solid #e7eef8; }
-  .booking-table tbody tr:last-child td:last-child { border-bottom: 0; }
-  .booking-table .booking-status-cell, .booking-table .booking-date-cell, .booking-table .booking-confirmation-cell { white-space: normal; }
-  .booking-table .booking-confirmation-stack { justify-items: end; gap: 5px; text-align: right; }
-  .booking-worker .avatar { width: 105px; height: 105px; border-radius: 50%; }
-  .calendar-worker .avatar { width: 105px; height: 105px; border-radius: 50%; }
+  .topbar .button--ghost { min-height: 44px; padding: 8px 4px; font-size: .82rem; }
+  .portal-main { padding: 24px 16px 52px; }
+  .page-heading { display: block; margin-bottom: 24px; }
+  .page-heading .portal-title { font-size: clamp(1.9rem, 9vw, 2.5rem); line-height: 1.04; }
+  .workforce-summary { width: 100%; gap: 13px; margin-top: 18px; padding: 16px; border-radius: 18px; box-shadow: 0 10px 24px rgb(37 90 173 / 8%); font-size: .92rem; }
+  .workforce-summary-heading { gap: 10px; color: var(--ink); font-weight: 760; }
+  .summary-count { width: 36px; height: 36px; font-size: .98rem; }
+  .page-heading .schedule-tick-key { display: none; }
+  .mobile-workforce-classifications { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 0; padding: 0; list-style: none; }
+  .mobile-workforce-classifications li { display: flex; align-items: baseline; min-width: 0; min-height: 45px; gap: 7px; padding: 9px 10px; color: var(--blue-dark); background: rgb(255 255 255 / 78%); border: 1px solid rgb(157 191 237 / 72%); border-radius: 12px; font-size: .78rem; font-weight: 760; line-height: 1.2; }
+  .mobile-workforce-classifications strong { flex: 0 0 auto; color: var(--blue); font-size: 1.08rem; font-weight: 820; }
+  .mobile-workforce-classifications span { min-width: 0; overflow-wrap: anywhere; }
+  .portal-tabs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; margin-bottom: 18px; padding: 4px; background: #e9f1ff; border: 1px solid #c9dbf8; border-radius: 14px; }
+  .portal-tab { width: 100%; min-height: 44px; padding: 8px 7px; border-radius: 10px; font-size: .8rem; line-height: 1.15; white-space: normal; }
+  .portal-tab:hover, .portal-tab[aria-selected="true"] { color: var(--blue-dark); background: white; border-color: #b3ccf1; box-shadow: 0 3px 9px rgb(57 119 223 / 11%); }
+  .booking-table-wrap { display: none; }
+  .mobile-booking-list { display: grid; gap: 12px; }
+  .mobile-booking-card { overflow: hidden; padding: 15px; background: linear-gradient(145deg, #ffffff, #fbfdff); border: 1px solid var(--line); border-radius: 18px; box-shadow: 0 8px 22px rgb(31 67 118 / 6%); }
+  .mobile-booking-card-header { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start; gap: 10px; }
+  .mobile-booking-worker { display: flex; align-items: center; min-width: 0; gap: 11px; }
+  .mobile-booking-worker .avatar { width: 58px; height: 58px; border-radius: 50%; font-size: .96rem; }
+  .mobile-booking-worker-copy { display: grid; min-width: 0; gap: 3px; }
+  .mobile-booking-worker .worker-name { font-size: .94rem; }
+  .mobile-booking-worker .worker-classification { max-width: 100%; font-size: .62rem; }
+  .mobile-booking-worker .worker-phone { font-size: .77rem; }
+  .mobile-booking-card-header > .booking-status { align-self: center; white-space: nowrap; }
+  .mobile-booking-facts { display: grid; gap: 0; margin: 14px 0 0; padding: 8px 0 0; border-top: 1px solid #e5edf8; }
+  .mobile-booking-facts > div { display: grid; grid-template-columns: minmax(90px, .8fr) minmax(0, 1.4fr); align-items: center; gap: 12px; min-height: 39px; padding: 7px 0; border-bottom: 1px solid #edf2f8; }
+  .mobile-booking-facts > div:last-child { border-bottom: 0; }
+  .mobile-booking-facts dt { color: var(--muted); font-size: .72rem; font-weight: 740; }
+  .mobile-booking-facts dd { min-width: 0; margin: 0; color: var(--ink); font-size: .78rem; font-weight: 700; line-height: 1.35; text-align: right; }
+  .mobile-booking-facts dd .booking-status { white-space: nowrap; }
   .calendar-card { padding: 0; }
-  .calendar-toolbar { display: flex; align-items: flex-start; flex-direction: column; gap: 14px; }
-  .week-label { width: 100%; text-align: center; }
-  .week-controls { width: 100%; }
-  .week-controls .button { flex: 1; min-width: 0; padding-right: 7px; padding-left: 7px; font-size: .77rem; white-space: nowrap; }
+  .calendar-toolbar { display: block; padding: 18px 16px 16px; }
+  .week-label { display: block; width: 100%; font-size: 1.14rem; line-height: 1.25; text-align: center; white-space: normal; }
+  .week-controls { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); width: 100%; gap: 8px; margin-top: 15px; }
+  .week-controls--away { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .week-controls--away .button--week-previous { grid-column: 1; grid-row: 1; }
+  .week-controls--away .button--week-next { grid-column: 2; grid-row: 1; }
+  .week-controls--away .button--return-week { grid-column: 1 / -1; grid-row: 2; }
+  .week-controls .button { min-width: 0; min-height: 44px; padding: 8px 6px; font-size: .76rem; line-height: 1.15; text-align: center; white-space: normal; }
   .calendar-table-wrap { display: none; }
-  .mobile-schedule { display: block; }
-  .mobile-week-coverage { display: block; padding: 16px 17px 12px; background: #fbfdff; border-bottom: 1px solid #e7eeea; }
-  .mobile-week-coverage-title { margin: 0 0 5px; color: var(--ink); font-size: .88rem; font-weight: 780; letter-spacing: -.02em; }
-  .mobile-week-day-list { display: grid; margin: 0; padding: 0; list-style: none; }
-  .mobile-week-day { display: grid; grid-template-columns: 82px minmax(0, 1fr); align-items: center; gap: 12px; padding: 10px 0; border-top: 1px solid #e7eef8; }
-  .mobile-week-day-date { display: grid; gap: 2px; }
-  .mobile-week-day-date strong { color: var(--ink); font-size: .78rem; font-weight: 800; }
-  .mobile-week-day-date span { color: var(--muted); font-size: .7rem; font-weight: 640; }
-  .mobile-week-day-counts { display: grid; justify-items: end; gap: 2px; color: var(--blue-dark); font-size: .78rem; font-weight: 740; line-height: 1.25; text-align: right; }
-  .mobile-week-day-empty { justify-self: end; color: #9aa7b7; font-size: .76rem; font-weight: 650; }
-  .mobile-worker-details-title { display: block; margin: 0; padding: 17px 17px 8px; color: var(--ink); font-size: .88rem; font-weight: 780; letter-spacing: -.02em; }
+  .mobile-schedule { --mobile-week-columns: repeat(7, minmax(0, 1fr)); display: block; }
+  .mobile-week-overview { display: block; padding: 17px 16px 19px; background: linear-gradient(180deg, #f9fbff, #ffffff); border-bottom: 1px solid #e4ecf7; }
+  .mobile-week-overview h2, .mobile-roster-heading h2 { margin: 0; color: var(--ink); font-size: .9rem; font-weight: 790; letter-spacing: -.015em; }
+  .mobile-week-strip { display: grid; grid-template-columns: var(--mobile-week-columns); gap: 4px; margin-top: 12px; }
+  .mobile-week-strip-day { display: grid; min-width: 0; min-height: 68px; align-content: center; justify-items: center; gap: 2px; padding: 6px 2px; color: var(--muted); background: #f6f9ff; border: 1px solid #e2eaf7; border-radius: 11px; }
+  .mobile-week-strip-day[data-today="true"] { color: var(--blue-dark); background: #eaf3ff; border-color: #8db6f2; box-shadow: inset 0 0 0 1px rgb(57 119 223 / 12%); }
+  .mobile-week-strip-day > span { font-size: .65rem; font-weight: 820; letter-spacing: .02em; }
+  .mobile-week-strip-day small { color: inherit; font-size: .72rem; font-weight: 700; }
+  .mobile-week-strip-day strong { color: var(--blue-dark); font-size: .93rem; font-weight: 830; line-height: 1; }
+  .mobile-roster { display: block; }
+  .mobile-roster-heading { display: grid; gap: 12px; padding: 18px 16px 14px; background: white; border-bottom: 1px solid #e4ecf7; }
+  .mobile-schedule-tick-key { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; color: var(--muted); font-size: .62rem; font-weight: 720; line-height: 1.2; }
+  .mobile-schedule-tick-key > span { display: flex; align-items: center; min-width: 0; gap: 5px; }
+  .mobile-schedule-tick-key .assignment-mark { width: 18px; height: 18px; flex: 0 0 auto; box-shadow: none; font-size: .58rem; }
+  .mobile-roster-day-labels { display: grid; grid-template-columns: var(--mobile-week-columns); gap: 4px; padding: 11px 16px 10px; background: #f7faff; border-bottom: 1px solid #e4ecf7; }
+  .mobile-roster-day-labels span { display: grid; min-width: 0; justify-items: center; gap: 2px; color: var(--muted); }
+  .mobile-roster-day-labels strong { color: var(--ink); font-size: .63rem; font-weight: 820; line-height: 1; }
+  .mobile-roster-day-labels small { font-size: .66rem; font-weight: 700; line-height: 1; }
+  .mobile-roster-list { display: grid; }
+  .mobile-roster-worker { padding: 15px 16px; background: white; border-bottom: 1px solid #e7eef8; }
+  .mobile-roster-worker:last-child { border-bottom: 0; }
+  .mobile-roster-worker .calendar-worker { gap: 11px; }
+  .mobile-roster-worker .calendar-worker .avatar { width: 58px; height: 58px; border-radius: 50%; font-size: .98rem; }
+  .mobile-roster-worker .calendar-worker-name { font-size: .92rem; }
+  .mobile-roster-worker .calendar-worker-classification { font-size: .65rem; }
+  .mobile-roster-worker .calendar-worker-phone { font-size: .76rem; }
+  .mobile-worker-day-grid { display: grid; grid-template-columns: var(--mobile-week-columns); gap: 4px; margin-top: 12px; }
+  .mobile-worker-day { display: grid; min-width: 0; min-height: 34px; place-items: center; background: #f8fbff; border: 1px solid #edf2f9; border-radius: 8px; }
+  .mobile-worker-day[data-today="true"] { background: #edf5ff; border-color: #c7dbf8; }
+  .mobile-worker-day .assignment-mark { width: 23px; height: 23px; font-size: .68rem; }
+  .mobile-worker-day .no-assignment { font-size: .9rem; }
   .auth-card .brand-logo-frame { width: 205px; }
 }
 
 @media (max-width: 385px) {
-  .preview-badge { max-width: 174px; overflow: hidden; text-overflow: ellipsis; }
-  .button { padding-right: 10px; padding-left: 10px; }
-  .calendar-card { margin-right: -3px; margin-left: -3px; }
-  .mobile-days { gap: 3px; }
-  .mobile-day { min-height: 54px; }
+  .topbar { padding-right: 14px; padding-left: 14px; }
+  .topbar .brand-logo-frame { width: 122px; }
+  .preview-badge { max-width: 124px; overflow: hidden; text-overflow: ellipsis; }
+  .portal-main { padding-right: 12px; padding-left: 12px; }
+  .week-controls { gap: 6px; }
+  .week-controls .button { font-size: .72rem; }
+  .mobile-week-overview, .mobile-roster-heading { padding-right: 12px; padding-left: 12px; }
+  .mobile-roster-day-labels, .mobile-roster-worker { padding-right: 12px; padding-left: 12px; }
+  .mobile-week-strip, .mobile-roster-day-labels, .mobile-worker-day-grid { gap: 3px; }
+  .mobile-week-strip-day { min-height: 64px; }
+  .mobile-week-strip-day > span { font-size: .61rem; }
+  .mobile-week-strip-day small { font-size: .69rem; }
+  .mobile-worker-day { min-height: 32px; }
+  .mobile-worker-day .assignment-mark { width: 22px; height: 22px; font-size: .65rem; }
+  .mobile-schedule-tick-key { gap: 4px; font-size: .58rem; }
+  .mobile-schedule-tick-key > span { gap: 3px; }
+  .mobile-schedule-tick-key .assignment-mark { width: 16px; height: 16px; font-size: .52rem; }
+  .mobile-booking-card { padding: 13px; }
+  .mobile-booking-facts > div { grid-template-columns: minmax(80px, .76fr) minmax(0, 1.4fr); gap: 8px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
