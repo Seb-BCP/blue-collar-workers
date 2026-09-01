@@ -6,6 +6,8 @@
 -- and excludes assignments whose confirmed end date is before today's date in
 -- the operational Australia/Perth timezone.
 
+drop function if exists public.get_client_worker_calendar();
+
 create or replace function public.get_client_worker_calendar()
 returns table (
   worker_name text,
@@ -16,6 +18,7 @@ returns table (
   photo_mime_type text,
   photo_updated_at timestamptz,
   work_date date,
+  assignment_day_is_active boolean,
   start_date date,
   end_date date,
   end_date_confirmed boolean,
@@ -56,6 +59,7 @@ begin
     wp.profile_photo_mime_type as photo_mime_type,
     wp.profile_photo_updated_at as photo_updated_at,
     ad.work_date,
+    ad.is_active as assignment_day_is_active,
     a.start_date,
     a.end_date,
     coalesce(a.end_date_confirmed, false) as end_date_confirmed,
@@ -77,7 +81,6 @@ begin
 
   left join public.assignment_days ad
     on ad.assignment_id = a.id
-    and ad.is_active = true
 
   where
     o.client_id =

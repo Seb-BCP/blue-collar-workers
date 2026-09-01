@@ -59,20 +59,21 @@ The protected get_client_worker_calendar RPC returns worker name/contact/photo
 fields plus:
 
 - classification from assignments.classification_id joined to classifications.name
-- work_date from assignment_days, used only for individual weekly calendar days
+- work_date and assignment_day_is_active from assignment_days, used only for
+  individual weekly calendar days
 - start_date from assignments
 - end_date from assignments
 - end_date_confirmed from assignments
 - ongoing_assignment from assignments
 
 The portal does not query assignments directly and never derives booking days
-or assignment dates from orders. Active `assignment_days.work_date` rows are
-authoritative for explicit working dates, especially Saturday and Sunday. For
-sparse or absent day rows, the calendar displays only Monday–Friday within the
-assignment start/end window; it never creates weekend work from an ongoing flag
-or date range. `ongoing_assignment` controls the Worker Bookings presentation,
-not the calendar's weekend logic. Worker bookings with a confirmed end date
-disappear only after that end date has passed.
+or assignment dates from orders. An active `assignment_days` row is explicitly
+working; an inactive row is explicitly not working and suppresses fallback for
+that date. Where no day row exists, the calendar falls back only to Monday–
+Friday within the assignment start/end window. It never creates weekend work
+from an ongoing flag or date range. `ongoing_assignment` controls the Worker
+Bookings presentation, not the calendar's weekend logic. Worker bookings with
+a confirmed end date disappear only after that end date has passed.
 
 Keep the RPC client-scoped from protected app_metadata.client_id, return no raw
 IDs or audit fields, and preserve its existing assignment eligibility rules.
