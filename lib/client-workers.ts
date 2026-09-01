@@ -16,6 +16,7 @@ export type ClientWorkerCalendarRow = {
   start_date: string | null;
   end_date: string | null;
   end_date_confirmed: boolean;
+  ongoing_assignment: boolean;
 };
 
 export type ClientWorkerBooking = {
@@ -28,6 +29,8 @@ export type ClientWorkerBooking = {
   startDate: string | null;
   endDate: string | null;
   endDateConfirmed: boolean;
+  /** Supplied directly by get_client_worker_calendar; never inferred. */
+  ongoingAssignment: boolean;
   assignedDates: string[];
 };
 
@@ -171,6 +174,7 @@ function addBooking(
     if (workDate) existing.assignedDates.add(workDate);
     existing.startDate ??= booking.startDate;
     existing.endDate ??= booking.endDate;
+    existing.ongoingAssignment ||= booking.ongoingAssignment;
     return;
   }
 
@@ -199,7 +203,8 @@ function isClientWorkerCalendarRow(
     isNullableString(row.work_date) &&
     isNullableString(row.start_date) &&
     isNullableString(row.end_date) &&
-    typeof row.end_date_confirmed === 'boolean'
+    typeof row.end_date_confirmed === 'boolean' &&
+    typeof row.ongoing_assignment === 'boolean'
   );
 }
 
@@ -235,6 +240,7 @@ function bookingFromRow(
     startDate: optionalDateKey(row.start_date),
     endDate: optionalDateKey(row.end_date),
     endDateConfirmed: row.end_date_confirmed,
+    ongoingAssignment: row.ongoing_assignment,
   };
 }
 
@@ -249,6 +255,7 @@ function bookingGroupingKey(
     booking.startDate ?? '',
     booking.endDate ?? '',
     booking.endDateConfirmed ? 'confirmed' : 'not-confirmed',
+    booking.ongoingAssignment ? 'ongoing' : 'not-ongoing',
   ].join('\u0000');
 }
 

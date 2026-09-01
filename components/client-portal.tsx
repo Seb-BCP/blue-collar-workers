@@ -537,15 +537,18 @@ function WorkerBookings({
                     {booking.endDate !== null ? bookingEndDateLabel(booking) : null}
                   </td>
                   <td className="booking-confirmation-cell">
-                    {booking.endDate !== null ? (
-                      <span className={bookingConfirmationClass(booking)}>
-                        {bookingConfirmationLabel(booking)}
-                      </span>
-                    ) : (
-                      <span className="booking-status booking-status--ongoing">
-                        Ongoing
-                      </span>
-                    )}
+                    <div className="booking-confirmation-stack">
+                      {booking.endDate !== null ? (
+                        <span className={bookingConfirmationClass(booking)}>
+                          {bookingConfirmationLabel(booking)}
+                        </span>
+                      ) : null}
+                      {booking.ongoingAssignment ? (
+                        <span className="booking-status booking-status--ongoing">
+                          Ongoing
+                        </span>
+                      ) : null}
+                    </div>
                   </td>
                 </tr>
               ))}

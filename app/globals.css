@@ -83,6 +83,7 @@ button:focus-visible, input:focus-visible { outline: 3px solid rgb(57 119 223 / 
 .worker-phone { display: inline-block; max-width: 100%; margin-top: 2px; overflow: hidden; color: var(--blue-dark); font-size: .86rem; font-weight: 650; text-decoration: none; text-overflow: ellipsis; white-space: nowrap; }
 .worker-phone:hover { text-decoration: underline; }
 .booking-date-cell, .booking-confirmation-cell, .booking-status-cell { white-space: nowrap; }
+.booking-confirmation-stack { display: grid; justify-items: start; gap: 6px; }
 .booking-status { display: inline-flex; align-items: center; min-height: 27px; padding: 4px 8px; border-radius: 999px; font-size: .72rem; font-weight: 760; letter-spacing: .01em; }
 .booking-status--confirmed { color: #a93b46; background: #fff0f1; border: 1px solid #f1c1c6; }
 .booking-status--pending { color: #86550f; background: #fff7e7; border: 1px solid #f2dbab; }

@@ -66,6 +66,7 @@ export function getDevelopmentPreviewWorkers(): ClientWorker[] {
           false,
           'Forklift',
           [day(1), day(2), day(3), day(4), day(5)],
+          true,
         ),
       ],
     },
@@ -146,6 +147,7 @@ export function getDevelopmentPreviewWorkers(): ClientWorker[] {
           false,
           'Supervisor',
           [day(2), day(3), day(4), day(6)],
+          true,
         ),
       ],
     },
@@ -163,6 +165,7 @@ function fixtureBooking(
   endDateConfirmed: boolean,
   classification: string | null,
   assignedDates: string[],
+  ongoingAssignment = false,
 ): ClientWorkerBooking {
   return {
     key,
@@ -170,6 +173,7 @@ function fixtureBooking(
     startDate,
     endDate,
     endDateConfirmed,
+    ongoingAssignment,
     assignedDates,
   };
 }
