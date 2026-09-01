@@ -1,6 +1,11 @@
 'use client';
 
-import { useMemo, useState, type KeyboardEvent } from 'react';
+import {
+  useMemo,
+  useState,
+  type CSSProperties,
+  type KeyboardEvent,
+} from 'react';
 import type { ClientWorker, ClientWorkerBooking } from '@/lib/client-workers';
 import { localDateFromKey } from '@/lib/business-date';
 import { Brand } from '@/components/brand';
@@ -10,6 +15,7 @@ import { WorkerAvatar } from '@/components/worker-avatar';
 type ClientPortalProps = {
   workers: ClientWorker[];
   clientName: string;
+  siteName?: string | null;
   title?: string;
   initialBusinessDate: string;
   mode: 'authenticated' | 'development-preview' | 'admin-preview';
@@ -31,6 +37,19 @@ type WorkerBookingRow = {
 type WorkerBookingStatus = 'upcoming' | 'finishing-today' | 'working';
 
 type ScheduleTickKind = 'standard' | 'start' | 'confirmed-end';
+
+type MobileDayWorker = {
+  worker: ClientWorker;
+  classifications: string[];
+  tickKind: ScheduleTickKind;
+};
+
+type MobileDaySummary = {
+  day: Date;
+  dayKey: string;
+  classificationCounts: ClassificationCount[];
+  workers: MobileDayWorker[];
+};
 
 const portalTabs: ReadonlyArray<{ id: PortalTab; label: string }> = [
   { id: 'schedule', label: 'Weekly schedule' },
@@ -64,13 +83,25 @@ const rangeEndDifferentMonth = new Intl.DateTimeFormat('en-AU', {
 export function ClientPortal({
   workers,
   clientName,
+  siteName,
   title: titleOverride,
   initialBusinessDate,
   mode,
 }: ClientPortalProps) {
-  const currentWeekStart = mondayFor(localDateFromKey(initialBusinessDate));
+  const currentWeekStart = useMemo(
+    () => mondayFor(localDateFromKey(initialBusinessDate)),
+    [initialBusinessDate],
+  );
   const [weekStart, setWeekStart] = useState(currentWeekStart);
   const [activeTab, setActiveTab] = useState<PortalTab>('schedule');
+  const currentWeekDays = useMemo(
+    () => Array.from({ length: 7 }, (_, index) => addDays(currentWeekStart, index)),
+    [currentWeekStart],
+  );
+  const nextWeekDays = useMemo(
+    () => Array.from({ length: 7 }, (_, index) => addDays(currentWeekStart, index + 7)),
+    [currentWeekStart],
+  );
   const days = useMemo(
     () => Array.from({ length: 7 }, (_, index) => addDays(weekStart, index)),
     [weekStart],
@@ -79,16 +110,23 @@ export function ClientPortal({
     () => workers.filter((worker) => workerHasScheduledDayInWeek(worker, days)),
     [workers, days],
   );
-  const weeklyClassificationCounts = useMemo(
-    () => workerClassificationCountsForWeek(scheduledWorkers, days),
-    [scheduledWorkers, days],
+  const thisWeekWorkers = useMemo(
+    () => workers.filter((worker) => workerHasScheduledDayInWeek(worker, currentWeekDays)),
+    [workers, currentWeekDays],
+  );
+  const nextWeekWorkers = useMemo(
+    () => workers.filter((worker) => workerHasScheduledDayInWeek(worker, nextWeekDays)),
+    [workers, nextWeekDays],
+  );
+  const thisWeekClassificationCounts = useMemo(
+    () => workerClassificationCountsForWeek(thisWeekWorkers, currentWeekDays),
+    [thisWeekWorkers, currentWeekDays],
   );
   const isCurrentWeek = dateKey(weekStart) === dateKey(currentWeekStart);
   const weekRange = formatWeekRange(days[0], days[6]);
-  const title = titleOverride ?? clientName + ' – BCP Workers';
   const isDevelopmentPreview = mode === 'development-preview';
   const isAdminPreview = mode === 'admin-preview';
-  const displayedWorkerCount = scheduledWorkers.length;
+  const clientHeading = clientName + (siteName ? ' (' + siteName + ')' : '');
 
   const scheduleProps: WeeklyScheduleProps = {
     workers: scheduledWorkers,
@@ -129,24 +167,47 @@ export function ClientPortal({
       <main className="portal-main">
         <section className="page-heading" aria-labelledby="portal-title">
           <h1 className="portal-title" id="portal-title">
-            {title}
+            {titleOverride ? (
+              titleOverride
+            ) : (
+              <>
+                <span className="portal-client-title">{clientHeading}</span>
+                <span className="portal-product-title">BCP Workers</span>
+              </>
+            )}
           </h1>
           <div
             className="workforce-summary"
             aria-label={
-              String(displayedWorkerCount) +
-              (displayedWorkerCount === 1
-                ? ' scheduled worker this week'
-                : ' scheduled workers this week')
+              String(thisWeekWorkers.length) +
+              (thisWeekWorkers.length === 1
+                ? ' worker scheduled this week and '
+                : ' workers scheduled this week and ') +
+              String(nextWeekWorkers.length) +
+              (nextWeekWorkers.length === 1
+                ? ' worker scheduled next week'
+                : ' workers scheduled next week')
             }
           >
             <div className="workforce-summary-heading">
-              <span className="summary-count">{displayedWorkerCount}</span>
-              {displayedWorkerCount === 1
-                ? 'scheduled worker this week'
-                : 'scheduled workers this week'}
+              <span className="summary-count">{thisWeekWorkers.length}</span>
+              <span className="workforce-summary-copy">
+                <strong>This week</strong>
+                <span>
+                  {thisWeekWorkers.length === 1
+                    ? 'worker scheduled'
+                    : 'workers scheduled'}
+                </span>
+              </span>
             </div>
-            <MobileWorkforceClassifications counts={weeklyClassificationCounts} />
+            <div className="workforce-summary-next-week">
+              <span>Next week</span>
+              <strong>{nextWeekWorkers.length}</strong>
+              <span>
+                {nextWeekWorkers.length === 1 ? 'worker scheduled' : 'workers scheduled'}
+              </span>
+            </div>
+            <MobileWorkforceClassifications counts={thisWeekClassificationCounts} />
             <div className="schedule-tick-key" aria-label="Weekly schedule tick meanings">
               <span className="schedule-tick-key-item">
                 <span className="assignment-mark assignment-mark--start" aria-hidden="true">
@@ -460,49 +521,47 @@ function MobileCalendar({
   days,
   todayKey,
 }: Pick<WeeklyScheduleProps, 'workers' | 'days' | 'todayKey'>) {
-  return (
-    <div className="mobile-schedule">
-      <section className="mobile-week-overview" aria-labelledby="mobile-coverage-title">
-        <h2 id="mobile-coverage-title">Week spread</h2>
-        <div className="mobile-week-strip" role="list">
-          {days.map((day) => {
-            const dayKey = dateKey(day);
-            const workerCount = workers.filter(
-              (worker) => scheduleTickKind(worker, dayKey) !== null,
-            ).length;
+  const activeDays = days
+    .map((day) => mobileDaySummary(workers, day))
+    .filter((summary) => summary.workers.length > 0);
+  const [selectedDayKey, setSelectedDayKey] = useState<string | null>(null);
+  const selectedDay =
+    activeDays.find((summary) => summary.dayKey === selectedDayKey) ??
+    activeDays.find((summary) => summary.dayKey === todayKey) ??
+    activeDays[0];
 
-            return (
-              <div
-                aria-label={
-                  longWeekday.format(day) +
-                  ' ' +
-                  calendarDate.format(day) +
-                  ': ' +
-                  String(workerCount) +
-                  (workerCount === 1 ? ' worker scheduled' : ' workers scheduled')
-                }
-                className="mobile-week-strip-day"
-                data-today={dayKey === todayKey}
-                key={dayKey}
-                role="listitem"
-              >
-                <span>{shortWeekday.format(day).slice(0, 1)}</span>
-                <small>{dayNumber.format(day)}</small>
-                <strong>{workerCount}</strong>
-              </div>
-            );
-          })}
-        </div>
-      </section>
+  if (!selectedDay) {
+    return (
+      <div className="mobile-schedule">
+        <section className="mobile-empty-week" aria-labelledby="mobile-empty-week-title">
+          <h2 id="mobile-empty-week-title">No workers scheduled this week</h2>
+          <p>Choose another week to review upcoming workforce coverage.</p>
+        </section>
+      </div>
+    );
+  }
+
+  const mobileWeekGridStyle = {
+    '--mobile-week-columns': `repeat(${activeDays.length}, minmax(0, 1fr))`,
+  } as CSSProperties;
+
+  return (
+    <div className="mobile-schedule" style={mobileWeekGridStyle}>
+      <MobileWeekSpread
+        activeDays={activeDays}
+        selectedDay={selectedDay}
+        setSelectedDayKey={setSelectedDayKey}
+        todayKey={todayKey}
+      />
       <section className="mobile-roster" aria-labelledby="mobile-roster-title">
         <div className="mobile-roster-heading">
-          <h2 id="mobile-roster-title">Worker details</h2>
+          <h2 id="mobile-roster-title">Worker schedule</h2>
           <MobileScheduleTickKey />
         </div>
         <div className="mobile-roster-day-labels" aria-hidden="true">
-          {days.map((day) => (
-            <span key={dateKey(day)}>
-              <strong>{shortWeekday.format(day).slice(0, 1)}</strong>
+          {activeDays.map(({ day, dayKey }) => (
+            <span key={dayKey}>
+              <strong>{shortWeekday.format(day)}</strong>
               <small>{dayNumber.format(day)}</small>
             </span>
           ))}
@@ -518,8 +577,7 @@ function MobileCalendar({
                   classification={classifications.join(' · ') || null}
                 />
                 <div className="mobile-worker-day-grid" aria-label={worker.name + "'s weekly assignments"}>
-                  {days.map((day) => {
-                    const dayKey = dateKey(day);
+                  {activeDays.map(({ day, dayKey }) => {
                     const tickKind = scheduleTickKind(worker, dayKey);
                     const assigned = tickKind !== null;
 
@@ -559,6 +617,139 @@ function MobileCalendar({
         </div>
       </section>
     </div>
+  );
+}
+
+function MobileWeekSpread({
+  activeDays,
+  selectedDay,
+  setSelectedDayKey,
+  todayKey,
+}: {
+  activeDays: MobileDaySummary[];
+  selectedDay: MobileDaySummary;
+  setSelectedDayKey: (dayKey: string) => void;
+  todayKey: string;
+}) {
+  function onKeyDown(event: KeyboardEvent<HTMLButtonElement>) {
+    const currentIndex = activeDays.findIndex(
+      (summary) => summary.dayKey === selectedDay.dayKey,
+    );
+    let nextIndex = currentIndex;
+
+    if (event.key === 'ArrowRight' || event.key === 'ArrowDown') {
+      nextIndex = (currentIndex + 1) % activeDays.length;
+    } else if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') {
+      nextIndex = (currentIndex - 1 + activeDays.length) % activeDays.length;
+    } else if (event.key === 'Home') {
+      nextIndex = 0;
+    } else if (event.key === 'End') {
+      nextIndex = activeDays.length - 1;
+    } else {
+      return;
+    }
+
+    event.preventDefault();
+    const nextDay = activeDays[nextIndex];
+    setSelectedDayKey(nextDay.dayKey);
+    document.getElementById('mobile-day-tab-' + nextDay.dayKey)?.focus();
+  }
+
+  return (
+    <section className="mobile-week-overview" aria-labelledby="mobile-coverage-title">
+      <div className="mobile-week-overview-heading">
+        <div>
+          <h2 id="mobile-coverage-title">Daily coverage</h2>
+          <p>Tap a day to see who is scheduled.</p>
+        </div>
+      </div>
+      <div className="mobile-week-strip" role="tablist" aria-label="Daily workforce coverage">
+        {activeDays.map((summary) => {
+          const isSelected = summary.dayKey === selectedDay.dayKey;
+          const workerLabel = summary.workers.length === 1 ? 'worker' : 'workers';
+
+          return (
+            <button
+              aria-controls="mobile-day-detail"
+              aria-selected={isSelected}
+              className="mobile-week-strip-day"
+              data-selected={isSelected}
+              data-today={summary.dayKey === todayKey}
+              id={'mobile-day-tab-' + summary.dayKey}
+              key={summary.dayKey}
+              onClick={() => setSelectedDayKey(summary.dayKey)}
+              onKeyDown={onKeyDown}
+              role="tab"
+              tabIndex={isSelected ? 0 : -1}
+              type="button"
+            >
+              <span className="mobile-week-day-date">
+                <strong>{shortWeekday.format(summary.day)}</strong>
+                <span>{calendarDate.format(summary.day)}</span>
+              </span>
+              <span className="mobile-week-day-worker-count">
+                <strong>{summary.workers.length}</strong>
+                <span>{workerLabel} scheduled</span>
+              </span>
+              <span className="mobile-week-day-classifications">
+                {summary.classificationCounts.map(({ classification, count }) => (
+                  <span key={classification}>
+                    {dailyClassificationLabel(classification, count)}
+                  </span>
+                ))}
+              </span>
+              <span className="mobile-week-day-action" aria-hidden="true">
+                {isSelected ? 'Showing workers' : 'View workers'}
+                <span>›</span>
+              </span>
+            </button>
+          );
+        })}
+      </div>
+      <div
+        aria-labelledby={'mobile-day-tab-' + selectedDay.dayKey}
+        className="mobile-day-detail"
+        id="mobile-day-detail"
+        role="tabpanel"
+      >
+        <div className="mobile-day-detail-heading">
+          <div>
+            <h3>
+              {longWeekday.format(selectedDay.day)} {calendarDate.format(selectedDay.day)}
+            </h3>
+            <p>
+              {selectedDay.workers.length}{' '}
+              {selectedDay.workers.length === 1 ? 'worker scheduled' : 'workers scheduled'}
+            </p>
+          </div>
+          <span className="mobile-day-detail-selected">Selected day</span>
+        </div>
+        <ul className="mobile-day-detail-worker-list">
+          {selectedDay.workers.map(({ worker, classifications, tickKind }) => (
+            <li key={workerKey(worker)}>
+              <span className={scheduleTickClassName(tickKind)} aria-hidden="true">
+                ✓
+              </span>
+              <WorkerAvatar
+                name={worker.name}
+                photoUrl={worker.photoUrl}
+                hasPhotoSource={worker.hasPhotoSource}
+                photoSigningError={worker.photoSigningError}
+                compact
+              />
+              <span className="mobile-day-detail-worker-copy">
+                <strong>{worker.name}</strong>
+                <span>{classifications.join(' · ') || 'Classification not listed'}</span>
+                <WorkerContact
+                  worker={worker}
+                  className="mobile-day-detail-worker-phone"
+                />
+              </span>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </section>
   );
 }
 
@@ -639,58 +830,67 @@ function WorkerBookings({
                 </tr>
               </thead>
               <tbody>
-                {rows.map(({ worker, booking, status }) => (
-                  <tr key={workerKey(worker) + '\u0000' + booking.key}>
-                    <td>
-                      <div className="booking-worker">
-                        <WorkerAvatar
-                          name={worker.name}
-                          photoUrl={worker.photoUrl}
-                          hasPhotoSource={worker.hasPhotoSource}
-                          photoSigningError={worker.photoSigningError}
-                          compact
-                        />
-                        <div className="booking-worker-copy">
-                          <strong className="worker-name">{worker.name}</strong>
-                          <WorkerClassification
-                            classification={booking.classification}
-                            className="worker-classification"
+                {rows.map(({ worker, booking, status }) => {
+                  const duration = bookingDurationLabel(booking);
+
+                  return (
+                    <tr key={workerKey(worker) + '\u0000' + booking.key}>
+                      <td>
+                        <div className="booking-worker">
+                          <WorkerAvatar
+                            name={worker.name}
+                            photoUrl={worker.photoUrl}
+                            hasPhotoSource={worker.hasPhotoSource}
+                            photoSigningError={worker.photoSigningError}
+                            compact
                           />
-                          <WorkerContact worker={worker} className="worker-phone" />
+                          <div className="booking-worker-copy">
+                            <strong className="worker-name">{worker.name}</strong>
+                            <WorkerClassification
+                              classification={booking.classification}
+                              className="worker-classification"
+                            />
+                            <WorkerContact worker={worker} className="worker-phone" />
+                          </div>
                         </div>
-                      </div>
-                    </td>
-                    <td className="booking-status-cell" data-label="Status">
-                      <span className={workerBookingStatusClass(status)}>
-                        {workerBookingStatusLabel(status)}
-                      </span>
-                    </td>
-                    <td className="booking-date-cell" data-label="Start date">
-                      {booking.startDate
-                        ? formatBookingDate(booking.startDate)
-                        : 'Not supplied'}
-                    </td>
-                    <td className="booking-date-cell" data-label="End date (planned)">
-                      {booking.endDate !== null && !booking.ongoingAssignment
-                        ? bookingEndDateLabel(booking)
-                        : null}
-                    </td>
-                    <td className="booking-confirmation-cell" data-label="Last day confirmed">
-                      <div className="booking-confirmation-stack">
-                        {booking.endDate !== null && !booking.ongoingAssignment ? (
-                          <span className={bookingConfirmationClass(booking)}>
-                            {bookingConfirmationLabel(booking)}
-                          </span>
-                        ) : null}
-                        {booking.ongoingAssignment ? (
-                          <span className="booking-status booking-status--ongoing">
-                            Ongoing
-                          </span>
-                        ) : null}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+                      <td className="booking-status-cell" data-label="Status">
+                        <span className={workerBookingStatusClass(status)}>
+                          {workerBookingStatusLabel(status)}
+                        </span>
+                      </td>
+                      <td className="booking-date-cell" data-label="Start date">
+                        {booking.startDate
+                          ? formatBookingDate(booking.startDate)
+                          : 'Not supplied'}
+                      </td>
+                      <td className="booking-date-cell" data-label="End date (planned)">
+                        {booking.endDate !== null && !booking.ongoingAssignment
+                          ? bookingEndDateLabel(booking)
+                          : null}
+                      </td>
+                      <td className="booking-confirmation-cell" data-label="Last day confirmed">
+                        <div className="booking-confirmation-stack">
+                          {booking.endDate !== null && !booking.ongoingAssignment ? (
+                            <span className={bookingConfirmationClass(booking)}>
+                              {bookingConfirmationLabel(booking)}
+                            </span>
+                          ) : null}
+                          {booking.ongoingAssignment ? (
+                            <span className="booking-status booking-status--ongoing">
+                              Ongoing
+                            </span>
+                          ) : null}
+                          {duration || booking.ongoingAssignment ? (
+                            <span className="booking-duration">
+                              Booking length · {duration ?? 'Ongoing'}
+                            </span>
+                          ) : null}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -753,6 +953,13 @@ function MobileWorkerBookings({ rows }: { rows: WorkerBookingRow[] }) {
                 ) : (
                   '—'
                 )}
+              </dd>
+            </div>
+            <div>
+              <dt>Booking length</dt>
+              <dd>
+                {bookingDurationLabel(booking) ??
+                  (booking.ongoingAssignment ? 'Ongoing' : 'Not supplied')}
               </dd>
             </div>
           </dl>
@@ -886,6 +1093,44 @@ function dailyClassificationCounts(
     );
 }
 
+function mobileDaySummary(workers: ClientWorker[], day: Date): MobileDaySummary {
+  const dayKey = dateKey(day);
+
+  return {
+    day,
+    dayKey,
+    classificationCounts: dailyClassificationCounts(workers, day),
+    workers: workers.flatMap((worker) => {
+      const tickKind = scheduleTickKind(worker, dayKey);
+
+      return tickKind
+        ? [
+            {
+              worker,
+              classifications: classificationsForDay(worker, dayKey),
+              tickKind,
+            },
+          ]
+        : [];
+    }),
+  };
+}
+
+function classificationsForDay(worker: ClientWorker, dayKey: string): string[] {
+  const classifications = new Set<string>();
+
+  for (const booking of workerBookings(worker)) {
+    const classification = clientClassificationLabel(booking.classification);
+    if (classification && bookingWorksOnScheduleDay(booking, dayKey)) {
+      classifications.add(classification);
+    }
+  }
+
+  return [...classifications].sort((left, right) =>
+    left.localeCompare(right, 'en-AU'),
+  );
+}
+
 function workerHasScheduledDayInWeek(worker: ClientWorker, days: Date[]): boolean {
   return days.some((day) => scheduleTickKind(worker, dateKey(day)) !== null);
 }
@@ -1009,6 +1254,58 @@ function bookingConfirmationClass(booking: ClientWorkerBooking): string {
   }
 
   return 'booking-status booking-status--pending';
+}
+
+function bookingDurationLabel(booking: ClientWorkerBooking): string | null {
+  if (booking.ongoingAssignment || !booking.startDate || !booking.endDate) {
+    return null;
+  }
+
+  const durationInDays = inclusiveCalendarDays(booking.startDate, booking.endDate);
+  if (durationInDays === null) return null;
+
+  if (durationInDays < 7) return pluralDuration(durationInDays, 'day');
+  if (durationInDays < 30) return roundedHalfDuration(durationInDays / 7, 'week');
+
+  return roundedHalfDuration(durationInDays / 30.4375, 'month');
+}
+
+function inclusiveCalendarDays(startDate: string, endDate: string): number | null {
+  const start = utcDateFromKey(startDate);
+  const end = utcDateFromKey(endDate);
+  if (start === null || end === null || end < start) return null;
+
+  return Math.floor((end - start) / 86_400_000) + 1;
+}
+
+function utcDateFromKey(value: string): number | null {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (!match) return null;
+
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const timestamp = Date.UTC(year, month - 1, day);
+  const date = new Date(timestamp);
+
+  return date.getUTCFullYear() === year &&
+    date.getUTCMonth() === month - 1 &&
+    date.getUTCDate() === day
+    ? timestamp
+    : null;
+}
+
+function roundedHalfDuration(value: number, unit: 'week' | 'month'): string {
+  const roundedValue = Math.round(value * 2) / 2;
+  const quantity = Number.isInteger(roundedValue)
+    ? String(roundedValue)
+    : roundedValue.toFixed(1);
+
+  return quantity + ' ' + unit + (roundedValue === 1 ? '' : 's');
+}
+
+function pluralDuration(value: number, unit: 'day'): string {
+  return String(value) + ' ' + unit + (value === 1 ? '' : 's');
 }
 
 function scheduleTickKind(

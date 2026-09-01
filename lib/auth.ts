@@ -32,6 +32,17 @@ export function clientDisplayName(user: User): string {
   return typeof value === 'string' && value.trim() ? value.trim() : 'Client';
 }
 
+/**
+ * Optional presentation-only site wording. It is deliberately separate from
+ * client_id: displaying a site does not change the client-scoped RPC or grant
+ * narrower data access. It should only be set for a login genuinely assigned
+ * to one site.
+ */
+export function clientSiteName(user: User): string | null {
+  const value = user.app_metadata.portal_site_name;
+  return typeof value === 'string' && value.trim() ? value.trim() : null;
+}
+
 export function safeInternalPath(value: string | null, fallback = '/portal') {
   if (!value || !value.startsWith('/') || value.startsWith('//')) return fallback;
 

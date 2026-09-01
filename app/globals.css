@@ -52,10 +52,19 @@ button:focus-visible, input:focus-visible { outline: 3px solid rgb(57 119 223 / 
 .eyebrow { margin: 0 0 8px; color: var(--green); font-size: .72rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
 .page-heading { display: flex; align-items: center; justify-content: space-between; gap: 28px; margin-bottom: 42px; }
 .page-heading h1, .auth-card h1, .notice-card h1 { margin: 0; color: var(--ink); font-size: clamp(2rem, 4vw, 3.15rem); font-weight: 700; letter-spacing: -.045em; line-height: 1.06; }
-.page-heading .portal-title { color: var(--blue-dark); font-size: clamp(2rem, 3.7vw, 3rem); font-weight: 640; letter-spacing: -.04em; }
+.page-heading .portal-title { display: grid; gap: 5px; color: var(--blue-dark); font-size: clamp(2rem, 3.7vw, 3rem); font-weight: 640; letter-spacing: -.04em; }
+.portal-client-title, .portal-product-title { display: block; }
+.portal-product-title { color: var(--muted); font-size: .48em; font-weight: 660; letter-spacing: -.02em; }
 .page-heading p, .auth-card p, .notice-card p { max-width: 570px; margin: 10px 0 0; color: var(--muted); font-size: 1rem; line-height: 1.55; }
 .workforce-summary { display: grid; flex: 0 0 auto; gap: 8px; padding: 11px 15px; color: var(--blue-dark); background: var(--blue-pale); border: 1px solid var(--blue-line); border-radius: 14px; font-size: .86rem; font-weight: 720; }
 .workforce-summary-heading { display: flex; align-items: center; gap: 11px; }
+.workforce-summary-copy { display: grid; gap: 1px; }
+.workforce-summary-copy strong { color: var(--ink); font-size: .86rem; }
+.workforce-summary-copy span { color: var(--muted); font-size: .72rem; font-weight: 670; }
+.workforce-summary-next-week { display: grid; grid-template-columns: auto 1fr; align-items: baseline; column-gap: 8px; row-gap: 1px; padding-top: 8px; border-top: 1px solid rgb(126 169 232 / 32%); }
+.workforce-summary-next-week span:first-child { color: var(--blue-dark); font-size: .74rem; font-weight: 780; }
+.workforce-summary-next-week strong { color: var(--blue); font-size: .98rem; font-weight: 830; }
+.workforce-summary-next-week span:last-child { grid-column: 1 / -1; color: var(--muted); font-size: .7rem; font-weight: 670; }
 .summary-count { display: grid; width: 28px; height: 28px; place-items: center; color: white; background: var(--blue); border-radius: 999px; box-shadow: 0 4px 10px rgb(57 119 223 / 24%); font-size: .78rem; }
 .schedule-tick-key { display: flex; flex-wrap: wrap; gap: 7px 11px; padding-top: 8px; border-top: 1px solid rgb(126 169 232 / 32%); color: var(--muted); font-size: .7rem; font-weight: 720; }
 .schedule-tick-key-item { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
@@ -90,6 +99,7 @@ button:focus-visible, input:focus-visible { outline: 3px solid rgb(57 119 223 / 
 .worker-phone:hover { text-decoration: underline; }
 .booking-date-cell, .booking-confirmation-cell, .booking-status-cell { white-space: nowrap; }
 .booking-confirmation-stack { display: grid; justify-items: start; gap: 6px; }
+.booking-duration { color: var(--muted); font-size: .7rem; font-weight: 680; white-space: normal; }
 .booking-status { display: inline-flex; align-items: center; min-height: 27px; padding: 4px 8px; border-radius: 999px; font-size: .72rem; font-weight: 760; letter-spacing: .01em; }
 .booking-status--confirmed { color: #a93b46; background: #fff0f1; border: 1px solid #f1c1c6; }
 .booking-status--pending { color: #86550f; background: #fff7e7; border: 1px solid #f2dbab; }
@@ -178,8 +188,15 @@ a.calendar-worker-phone:hover { text-decoration: underline; }
   .portal-main { padding: 24px 16px 52px; }
   .page-heading { display: block; margin-bottom: 24px; }
   .page-heading .portal-title { font-size: clamp(1.9rem, 9vw, 2.5rem); line-height: 1.04; }
+  .portal-product-title { font-size: .5em; }
   .workforce-summary { width: 100%; gap: 13px; margin-top: 18px; padding: 16px; border-radius: 18px; box-shadow: 0 10px 24px rgb(37 90 173 / 8%); font-size: .92rem; }
   .workforce-summary-heading { gap: 10px; color: var(--ink); font-weight: 760; }
+  .workforce-summary-copy strong { font-size: .94rem; }
+  .workforce-summary-copy span { font-size: .76rem; }
+  .workforce-summary-next-week { column-gap: 9px; padding-top: 10px; }
+  .workforce-summary-next-week span:first-child { font-size: .78rem; }
+  .workforce-summary-next-week strong { font-size: 1.08rem; }
+  .workforce-summary-next-week span:last-child { font-size: .74rem; }
   .summary-count { width: 36px; height: 36px; font-size: .98rem; }
   .page-heading .schedule-tick-key { display: none; }
   .mobile-workforce-classifications { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 0; padding: 0; list-style: none; }
@@ -216,15 +233,41 @@ a.calendar-worker-phone:hover { text-decoration: underline; }
   .week-controls--away .button--return-week { grid-column: 1 / -1; grid-row: 2; }
   .week-controls .button { min-width: 0; min-height: 44px; padding: 8px 6px; font-size: .76rem; line-height: 1.15; text-align: center; white-space: normal; }
   .calendar-table-wrap { display: none; }
-  .mobile-schedule { --mobile-week-columns: repeat(7, minmax(0, 1fr)); display: block; }
-  .mobile-week-overview { display: block; padding: 17px 16px 19px; background: linear-gradient(180deg, #f9fbff, #ffffff); border-bottom: 1px solid #e4ecf7; }
-  .mobile-week-overview h2, .mobile-roster-heading h2 { margin: 0; color: var(--ink); font-size: .9rem; font-weight: 790; letter-spacing: -.015em; }
-  .mobile-week-strip { display: grid; grid-template-columns: var(--mobile-week-columns); gap: 4px; margin-top: 12px; }
-  .mobile-week-strip-day { display: grid; min-width: 0; min-height: 68px; align-content: center; justify-items: center; gap: 2px; padding: 6px 2px; color: var(--muted); background: #f6f9ff; border: 1px solid #e2eaf7; border-radius: 11px; }
-  .mobile-week-strip-day[data-today="true"] { color: var(--blue-dark); background: #eaf3ff; border-color: #8db6f2; box-shadow: inset 0 0 0 1px rgb(57 119 223 / 12%); }
-  .mobile-week-strip-day > span { font-size: .65rem; font-weight: 820; letter-spacing: .02em; }
-  .mobile-week-strip-day small { color: inherit; font-size: .72rem; font-weight: 700; }
-  .mobile-week-strip-day strong { color: var(--blue-dark); font-size: .93rem; font-weight: 830; line-height: 1; }
+  .mobile-schedule { --mobile-week-columns: repeat(7, minmax(0, 1fr)); display: block; min-width: 0; }
+  .mobile-empty-week { padding: 24px 16px; background: linear-gradient(180deg, #f9fbff, #ffffff); text-align: center; }
+  .mobile-empty-week h2 { margin: 0; color: var(--ink); font-size: 1rem; letter-spacing: -.02em; }
+  .mobile-empty-week p { margin: 7px auto 0; color: var(--muted); font-size: .82rem; line-height: 1.45; }
+  .mobile-week-overview { display: block; padding: 18px 16px 17px; background: linear-gradient(180deg, #f9fbff, #ffffff); border-bottom: 1px solid #e4ecf7; }
+  .mobile-week-overview h2, .mobile-roster-heading h2 { margin: 0; color: var(--ink); font-size: .98rem; font-weight: 800; letter-spacing: -.02em; }
+  .mobile-week-overview-heading p { margin: 4px 0 0; color: var(--muted); font-size: .76rem; font-weight: 590; line-height: 1.35; }
+  .mobile-week-strip { display: flex; max-width: 100%; gap: 10px; margin-top: 14px; padding: 2px 1px 8px; overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+  .mobile-week-strip::-webkit-scrollbar { display: none; }
+  .mobile-week-strip-day { display: grid; flex: 0 0 min(172px, 46vw); min-width: 0; min-height: 156px; align-content: start; gap: 9px; padding: 13px; color: var(--ink); background: white; border: 1px solid #d5e2f5; border-radius: 15px; box-shadow: 0 4px 12px rgb(31 67 118 / 5%); scroll-snap-align: start; text-align: left; transition: background 140ms ease, border-color 140ms ease, box-shadow 140ms ease; }
+  .mobile-week-strip-day[data-selected="true"] { background: #eef5ff; border-color: #7faaf0; box-shadow: 0 6px 16px rgb(57 119 223 / 14%), inset 0 0 0 1px rgb(57 119 223 / 10%); }
+  .mobile-week-strip-day[data-today="true"] .mobile-week-day-date strong { color: var(--blue); }
+  .mobile-week-day-date { display: grid; gap: 2px; }
+  .mobile-week-day-date strong { color: var(--ink); font-size: .92rem; font-weight: 830; letter-spacing: -.01em; line-height: 1; }
+  .mobile-week-day-date > span { color: var(--muted); font-size: .71rem; font-weight: 680; }
+  .mobile-week-day-worker-count { display: grid; gap: 1px; }
+  .mobile-week-day-worker-count strong { color: var(--blue-dark); font-size: 1.42rem; font-weight: 850; letter-spacing: -.04em; line-height: .95; }
+  .mobile-week-day-worker-count > span { color: var(--ink); font-size: .69rem; font-weight: 730; }
+  .mobile-week-day-classifications { display: grid; gap: 2px; color: var(--blue-dark); font-size: .68rem; font-weight: 740; line-height: 1.25; }
+  .mobile-week-day-action { display: flex; align-items: center; justify-content: space-between; gap: 7px; margin-top: auto; padding-top: 3px; color: var(--blue-dark); font-size: .69rem; font-weight: 770; }
+  .mobile-week-day-action > span { font-size: 1.1rem; line-height: .7; }
+  .mobile-day-detail { margin-top: 8px; overflow: hidden; background: white; border: 1px solid #dbe6f5; border-radius: 15px; box-shadow: 0 4px 12px rgb(31 67 118 / 4%); }
+  .mobile-day-detail-heading { display: flex; align-items: start; justify-content: space-between; gap: 12px; padding: 13px; background: #f7faff; border-bottom: 1px solid #e4ecf7; }
+  .mobile-day-detail-heading h3 { margin: 0; color: var(--ink); font-size: .91rem; font-weight: 810; letter-spacing: -.015em; }
+  .mobile-day-detail-heading p { margin: 3px 0 0; color: var(--muted); font-size: .71rem; font-weight: 650; }
+  .mobile-day-detail-selected { flex: 0 0 auto; padding: 5px 7px; color: var(--blue-dark); background: #e8f1ff; border: 1px solid #c8dcfa; border-radius: 999px; font-size: .62rem; font-weight: 750; }
+  .mobile-day-detail-worker-list { display: grid; gap: 0; margin: 0; padding: 0; list-style: none; }
+  .mobile-day-detail-worker-list li { display: grid; grid-template-columns: 24px 42px minmax(0, 1fr); align-items: center; gap: 9px; min-width: 0; padding: 11px 13px; border-bottom: 1px solid #edf2f8; }
+  .mobile-day-detail-worker-list li:last-child { border-bottom: 0; }
+  .mobile-day-detail-worker-list .assignment-mark { width: 22px; height: 22px; box-shadow: none; font-size: .64rem; }
+  .mobile-day-detail-worker-list .avatar { width: 42px; height: 42px; border-radius: 50%; font-size: .7rem; }
+  .mobile-day-detail-worker-copy { display: grid; min-width: 0; gap: 2px; }
+  .mobile-day-detail-worker-copy > strong { overflow: hidden; color: var(--ink); font-size: .8rem; font-weight: 780; text-overflow: ellipsis; white-space: nowrap; }
+  .mobile-day-detail-worker-copy > span { overflow: hidden; color: var(--blue-dark); font-size: .65rem; font-weight: 720; text-overflow: ellipsis; white-space: nowrap; }
+  .mobile-day-detail-worker-phone { overflow: hidden; color: var(--muted); font-size: .68rem; font-weight: 650; text-decoration: none; text-overflow: ellipsis; white-space: nowrap; }
   .mobile-roster { display: block; }
   .mobile-roster-heading { display: grid; gap: 12px; padding: 18px 16px 14px; background: white; border-bottom: 1px solid #e4ecf7; }
   .mobile-schedule-tick-key { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; color: var(--muted); font-size: .62rem; font-weight: 720; line-height: 1.2; }
@@ -232,7 +275,7 @@ a.calendar-worker-phone:hover { text-decoration: underline; }
   .mobile-schedule-tick-key .assignment-mark { width: 18px; height: 18px; flex: 0 0 auto; box-shadow: none; font-size: .58rem; }
   .mobile-roster-day-labels { display: grid; grid-template-columns: var(--mobile-week-columns); gap: 4px; padding: 11px 16px 10px; background: #f7faff; border-bottom: 1px solid #e4ecf7; }
   .mobile-roster-day-labels span { display: grid; min-width: 0; justify-items: center; gap: 2px; color: var(--muted); }
-  .mobile-roster-day-labels strong { color: var(--ink); font-size: .63rem; font-weight: 820; line-height: 1; }
+  .mobile-roster-day-labels strong { color: var(--ink); font-size: clamp(.56rem, 2.7vw, .68rem); font-weight: 820; line-height: 1; }
   .mobile-roster-day-labels small { font-size: .66rem; font-weight: 700; line-height: 1; }
   .mobile-roster-list { display: grid; }
   .mobile-roster-worker { padding: 15px 16px; background: white; border-bottom: 1px solid #e7eef8; }
@@ -259,10 +302,9 @@ a.calendar-worker-phone:hover { text-decoration: underline; }
   .week-controls .button { font-size: .72rem; }
   .mobile-week-overview, .mobile-roster-heading { padding-right: 12px; padding-left: 12px; }
   .mobile-roster-day-labels, .mobile-roster-worker { padding-right: 12px; padding-left: 12px; }
-  .mobile-week-strip, .mobile-roster-day-labels, .mobile-worker-day-grid { gap: 3px; }
-  .mobile-week-strip-day { min-height: 64px; }
-  .mobile-week-strip-day > span { font-size: .61rem; }
-  .mobile-week-strip-day small { font-size: .69rem; }
+  .mobile-week-strip { gap: 8px; }
+  .mobile-week-strip-day { flex-basis: min(150px, 48vw); min-height: 150px; padding: 12px; }
+  .mobile-roster-day-labels, .mobile-worker-day-grid { gap: 3px; }
   .mobile-worker-day { min-height: 32px; }
   .mobile-worker-day .assignment-mark { width: 22px; height: 22px; font-size: .65rem; }
   .mobile-schedule-tick-key { gap: 4px; font-size: .58rem; }

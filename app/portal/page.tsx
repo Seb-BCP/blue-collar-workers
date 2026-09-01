@@ -9,6 +9,7 @@ import {
 } from '@/lib/client-workers';
 import {
   clientDisplayName,
+  clientSiteName,
   hasAdminPreviewAccess,
   hasAuthorisedClientAccess,
 } from '@/lib/auth';
@@ -80,6 +81,7 @@ export default async function PortalPage() {
     <ClientPortal
       workers={workers}
       clientName={clientDisplayName(user)}
+      siteName={clientSiteName(user)}
       initialBusinessDate={businessTodayKey()}
       mode="authenticated"
     />
